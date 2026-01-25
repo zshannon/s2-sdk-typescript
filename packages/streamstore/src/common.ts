@@ -1,4 +1,7 @@
+import type { PkiAuthContext } from "./auth/pki-auth.js";
 import { S2Endpoints, type S2EndpointsInit } from "./endpoints.js";
+import { createClient, createConfig } from "./generated/client/index.js";
+import type { Client } from "./generated/client/types.gen.js";
 
 /**
  * Policy for retrying append operations.
@@ -7,6 +10,13 @@ import { S2Endpoints, type S2EndpointsInit } from "./endpoints.js";
  * - `noSideEffects`: Only retry append operations that are guaranteed to have no side effects
  */
 export type AppendRetryPolicy = "all" | "noSideEffects";
+
+/**
+ * Auth provider that abstracts token-based and PKI-based authentication.
+ */
+export type AuthProvider =
+	| { type: "token"; token: string }
+	| { type: "pki"; context: PkiAuthContext };
 
 /**
  * Retry configuration for handling transient failures.
@@ -75,6 +85,11 @@ export class S2Environment {
 			config.accessToken = token;
 		}
 
+		const rootKey = process.env.S2_ROOT_KEY;
+		if (rootKey) {
+			config.rootKey = rootKey;
+		}
+
 		const accountEndpoint = process.env.S2_ACCOUNT_ENDPOINT;
 		const basinEndpoint = process.env.S2_BASIN_ENDPOINT;
 		if (accountEndpoint || basinEndpoint) {
@@ -92,14 +107,39 @@ export class S2Environment {
 /**
  * Configuration for constructing the top-level `S2` client.
  *
- * - The client authenticates using a Bearer access token on every request.
+ * Provide one of:
+ * - `accessToken` for Bearer token auth (legacy)
+ * - `rootKey` for PKI bootstrap mode (limited to admin operations)
+ * - `authContext` for PKI proper auth (full access)
  */
 export type S2ClientOptions = {
 	/**
 	 * Access token used for HTTP Bearer authentication.
 	 * Typically obtained via your S2 account or created using `s2.accessTokens.issue`.
+	 *
+	 * Mutually exclusive with `rootKey` and `authContext`.
 	 */
-	accessToken: string;
+	accessToken?: string;
+	/**
+	 * P256 private key as base58-encoded 32 bytes for PKI bootstrap mode.
+	 * When provided, the SDK generates short-lived Biscuit tokens on-the-fly
+	 * and signs all requests with RFC 9421 HTTP message signatures.
+	 *
+	 * Bootstrap mode is limited to admin operations (list basins, issue tokens).
+	 * For full access including stream operations, use `authContext` instead.
+	 *
+	 * Mutually exclusive with `accessToken` and `authContext`.
+	 */
+	rootKey?: string;
+	/**
+	 * Pre-created PKI auth context for proper auth mode.
+	 * Create with `createPkiAuth({ token, signingKey })`.
+	 *
+	 * This is the recommended mode for full access to all operations including streams.
+	 *
+	 * Mutually exclusive with `accessToken` and `rootKey`.
+	 */
+	authContext?: PkiAuthContext;
 	/**
 	 * Endpoint configuration for the S2 environment.
 	 *
@@ -141,3 +181,35 @@ export type S2RequestOptions = {
 	 */
 	signal?: AbortSignal;
 };
+
+/**
+ * Creates a client configured with the given auth provider.
+ * Adds request interceptor for PKI signing when using PKI auth.
+ */
+export function createAuthenticatedClient(
+	baseUrl: string,
+	authProvider: AuthProvider,
+	headers: Record<string, string>,
+): Client {
+	const client = createClient(
+		createConfig({
+			baseUrl,
+			auth: async () => {
+				if (authProvider.type === "pki") {
+					return authProvider.context.getToken();
+				}
+				return authProvider.token;
+			},
+			headers,
+		}),
+	);
+
+	if (authProvider.type === "pki") {
+		const pkiContext = authProvider.context;
+		client.interceptors.request.use(async (request) => {
+			return pkiContext.signRequest(request);
+		});
+	}
+
+	return client;
+}

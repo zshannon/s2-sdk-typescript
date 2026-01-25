@@ -11,7 +11,7 @@ import {
 import type { SessionTransports } from "../lib/stream/types.js";
 
 const transports: SessionTransports[] = ["fetch", "s2s"];
-const hasEnv = !!process.env.S2_ACCESS_TOKEN;
+const hasEnv = !!process.env.S2_ACCESS_TOKEN || !!process.env.S2_ROOT_KEY;
 const describeIf = hasEnv ? describe : describe.skip;
 
 const TEST_TIMEOUT_MS = 600_000;
@@ -37,7 +37,7 @@ describeIf("Correctness Integration Tests", () => {
 
 	beforeAll(async () => {
 		const env = S2Environment.parse();
-		if (!env.accessToken) return;
+		if (!env.accessToken && !env.rootKey) return;
 
 		const retryConfig = {
 			appendRetryPolicy: "all" as const,
@@ -49,6 +49,7 @@ describeIf("Correctness Integration Tests", () => {
 
 		const clientConfig: S2ClientOptions = {
 			accessToken: env.accessToken,
+			rootKey: env.rootKey,
 			endpoints: env.endpoints ?? new S2Endpoints(),
 			retry: {
 				...env.retry,

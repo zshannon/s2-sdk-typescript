@@ -13,7 +13,7 @@ type ReadableStreamWithAsyncIterator<T> = ReadableStream<T> & {
 	[Symbol.asyncIterator]?: () => AsyncIterableIterator<T>;
 };
 
-import type { S2RequestOptions } from "../../../../common.js";
+import type { AuthProvider, S2RequestOptions } from "../../../../common.js";
 import {
 	makeAppendPreconditionError,
 	makeServerError,
@@ -24,7 +24,6 @@ import {
 import type * as API from "../../../../generated/index.js";
 import * as Proto from "../../../../generated/proto/s2.js";
 import type * as Types from "../../../../types.js";
-import * as Redacted from "../../../redacted.js";
 import type { AppendResult, CloseResult } from "../../../result.js";
 import { err, errClose, ok, okClose } from "../../../result.js";
 import {
@@ -51,6 +50,31 @@ import {
 	encodeProtoAppendInput,
 } from "../proto.js";
 import { frameMessage, S2SFrameParser } from "./framing.js";
+
+/**
+ * Gets the auth token from an auth provider.
+ */
+async function getAuthToken(authProvider: AuthProvider): Promise<string> {
+	if (authProvider.type === "pki") {
+		return authProvider.context.getToken();
+	}
+	return authProvider.token;
+}
+
+/**
+ * Signs headers if using PKI auth.
+ */
+async function signHeadersIfPki(
+	authProvider: AuthProvider,
+	headers: Record<string, string>,
+	method: string,
+	url: string,
+	body?: Uint8Array,
+): Promise<void> {
+	if (authProvider.type === "pki") {
+		await authProvider.context.signHeaders({ method, url, headers, body });
+	}
+}
 
 const debug = createDebug("s2:s2s");
 
@@ -88,7 +112,7 @@ export class S2STransport implements SessionTransport {
 			(myOptions) => {
 				return S2SAppendSession.create(
 					this.transportConfig.baseUrl,
-					this.transportConfig.accessToken,
+					this.transportConfig.authProvider,
 					stream,
 					() => this.getConnection(),
 					this.transportConfig.basinName,
@@ -111,7 +135,7 @@ export class S2STransport implements SessionTransport {
 			(myArgs) => {
 				return S2SReadSession.create(
 					this.transportConfig.baseUrl,
-					this.transportConfig.accessToken,
+					this.transportConfig.authProvider,
 					stream,
 					myArgs,
 					options,
@@ -257,7 +281,7 @@ class S2SReadSession<Format extends "string" | "bytes" = "string">
 
 	static async create<Format extends "string" | "bytes" = "string">(
 		baseUrl: string,
-		bearerToken: Redacted.Redacted,
+		authProvider: AuthProvider,
 		streamName: string,
 		args: ReadArgs<Format> | undefined,
 		options: S2RequestOptions | undefined,
@@ -268,7 +292,7 @@ class S2SReadSession<Format extends "string" | "bytes" = "string">
 		return new S2SReadSession(
 			streamName,
 			args,
-			bearerToken,
+			authProvider,
 			url,
 			options,
 			getConnection,
@@ -279,7 +303,7 @@ class S2SReadSession<Format extends "string" | "bytes" = "string">
 	private constructor(
 		private streamName: string,
 		private args: ReadArgs<Format> | undefined,
-		private authToken: Redacted.Redacted,
+		private authProvider: AuthProvider,
 		private url: URL,
 		private options: S2RequestOptions | undefined,
 		private getConnection: () => Promise<ClientHttp2Session>,
@@ -370,19 +394,30 @@ class S2SReadSession<Format extends "string" | "bytes" = "string">
 
 					const queryString = queryParams.toString();
 					const path = `${url.pathname}/streams/${encodeURIComponent(streamName)}/records${queryString ? `?${queryString}` : ""}`;
+					const fullUrl = `${url.protocol}//${url.host}${path}`;
 
-					const stream = connection.request({
+					// Get auth token
+					const token = await getAuthToken(authProvider);
+
+					// Build headers
+					// Note: We include both :authority (HTTP/2 pseudo-header) and host (for proxy compatibility)
+					const headers: Record<string, string> = {
 						":method": "GET",
 						":path": path,
 						":scheme": url.protocol.slice(0, -1),
 						":authority": url.host,
+						host: url.host, // Some proxies (like Fly.io) may need this for proper forwarding
 						"user-agent": DEFAULT_USER_AGENT,
-						authorization: `Bearer ${Redacted.value(authToken)}`,
-						// TODO compression
+						authorization: `Bearer ${token}`,
 						accept: "application/protobuf",
 						"content-type": "s2s/proto",
 						...(basinName ? { "s2-basin": basinName } : {}),
-					});
+					};
+
+					// Sign headers if using PKI auth
+					await signHeadersIfPki(authProvider, headers, "GET", fullUrl);
+
+					const stream = connection.request(headers);
 
 					http2Stream = stream;
 
@@ -686,7 +721,7 @@ class S2SAppendSession implements TransportAppendSession {
 
 	static async create(
 		baseUrl: string,
-		bearerToken: Redacted.Redacted,
+		authProvider: AuthProvider,
 		streamName: string,
 		getConnection: () => Promise<ClientHttp2Session>,
 		basinName: string | undefined,
@@ -695,7 +730,7 @@ class S2SAppendSession implements TransportAppendSession {
 	): Promise<S2SAppendSession> {
 		return new S2SAppendSession(
 			baseUrl,
-			bearerToken,
+			authProvider,
 			streamName,
 			getConnection,
 			basinName,
@@ -706,7 +741,7 @@ class S2SAppendSession implements TransportAppendSession {
 
 	private constructor(
 		private baseUrl: string,
-		private authToken: Redacted.Redacted,
+		private authProvider: AuthProvider,
 		private streamName: string,
 		private getConnection: () => Promise<ClientHttp2Session>,
 		private basinName?: string,
@@ -722,19 +757,30 @@ class S2SAppendSession implements TransportAppendSession {
 		const connection = await this.getConnection();
 
 		const path = `${url.pathname}/streams/${encodeURIComponent(this.streamName)}/records`;
+		const fullUrl = `${url.protocol}//${url.host}${path}`;
 
-		const stream = connection.request({
+		// Get auth token
+		const token = await getAuthToken(this.authProvider);
+
+		// Build headers
+		// Note: We include both :authority (HTTP/2 pseudo-header) and host (for proxy compatibility)
+		const headers: Record<string, string> = {
 			":method": "POST",
 			":path": path,
 			":scheme": url.protocol.slice(0, -1),
 			":authority": url.host,
+			host: url.host, // Some proxies (like Fly.io) may need this for proper forwarding
 			"user-agent": DEFAULT_USER_AGENT,
-			authorization: `Bearer ${Redacted.value(this.authToken)}`,
+			authorization: `Bearer ${token}`,
 			"content-type": "s2s/proto",
-			// TODO compression
 			accept: "application/protobuf",
 			...(this.basinName ? { "s2-basin": this.basinName } : {}),
-		});
+		};
+
+		// Sign headers if using PKI auth
+		await signHeadersIfPki(this.authProvider, headers, "POST", fullUrl);
+
+		const stream = connection.request(headers);
 
 		this.http2Stream = stream;
 

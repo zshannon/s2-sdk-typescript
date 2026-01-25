@@ -5,7 +5,9 @@ import type { SessionTransports } from "../lib/stream/types.js";
 import { Producer } from "../producer.js";
 
 const transports: SessionTransports[] = ["fetch", "s2s"];
-const hasEnv = !!process.env.S2_ACCESS_TOKEN && !!process.env.S2_BASIN;
+const hasEnv =
+	(!!process.env.S2_ACCESS_TOKEN || !!process.env.S2_ROOT_KEY) &&
+	!!process.env.S2_BASIN;
 const describeIf = hasEnv ? describe : describe.skip;
 
 const TOTAL_RECORDS = 192;
@@ -52,7 +54,7 @@ describeIf("Producer Integration Tests", () => {
 		const basin = process.env.S2_BASIN;
 		if (!basin) return;
 		const env = S2Environment.parse();
-		if (!env.accessToken) return;
+		if (!env.accessToken && !env.rootKey) return;
 		s2 = new S2(env as S2ClientOptions);
 		basinName = basin;
 	});

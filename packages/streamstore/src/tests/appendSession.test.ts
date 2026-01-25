@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as API from "../generated/index.js";
 import { AppendInput, AppendRecord } from "../index.js";
-import * as Redacted from "../lib/redacted.js";
 import * as SharedTransport from "../lib/stream/transport/fetch/shared.js";
 import { S2Stream } from "../stream.js";
 import * as Types from "../types.js";
@@ -12,7 +11,7 @@ const fakeClient: any = {};
 const makeStream = (retry?: { maxAttempts?: number }) =>
 	new S2Stream("test-stream", fakeClient, {
 		baseUrl: "https://test.b.aws.s2.dev",
-		accessToken: Redacted.make("test-access-token"),
+		authProvider: { type: "token", token: "test-access-token" },
 		forceTransport: "fetch",
 		retry,
 	});

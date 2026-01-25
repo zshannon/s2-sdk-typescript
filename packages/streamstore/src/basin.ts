@@ -1,11 +1,6 @@
-import type { RetryConfig } from "./common.js";
-import { createClient, createConfig } from "./generated/client/index.js";
+import { createAuthenticatedClient, type AuthProvider, type RetryConfig } from "./common.js";
 import type { Client } from "./generated/client/types.gen.js";
-import * as Redacted from "./lib/redacted.js";
-import {
-	canSetUserAgentHeader,
-	DEFAULT_USER_AGENT,
-} from "./lib/stream/runtime.js";
+import { canSetUserAgentHeader, DEFAULT_USER_AGENT } from "./lib/stream/runtime.js";
 import type { SessionTransports, TransportConfig } from "./lib/stream/types.js";
 import { S2Stream } from "./stream.js";
 import { S2Streams } from "./streams.js";
@@ -27,7 +22,7 @@ export class S2Basin {
 	constructor(
 		name: string,
 		options: {
-			accessToken: Redacted.Redacted;
+			authProvider: AuthProvider;
 			baseUrl: string;
 			includeBasinHeader: boolean;
 			retryConfig?: RetryConfig;
@@ -37,7 +32,7 @@ export class S2Basin {
 		this.retryConfig = options.retryConfig;
 		this.transportConfig = {
 			baseUrl: options.baseUrl,
-			accessToken: options.accessToken,
+			authProvider: options.authProvider,
 			basinName: options.includeBasinHeader ? name : undefined,
 			connectionTimeoutMillis: options.retryConfig?.connectionTimeoutMillis,
 			requestTimeoutMillis: options.retryConfig?.requestTimeoutMillis,
@@ -50,14 +45,7 @@ export class S2Basin {
 		if (canSetUserAgentHeader()) {
 			headers["user-agent"] = DEFAULT_USER_AGENT;
 		}
-		this.client = createClient(
-			createConfig({
-				baseUrl: options.baseUrl,
-				auth: () => Redacted.value(this.transportConfig.accessToken),
-				headers: headers,
-			}),
-		);
-
+		this.client = createAuthenticatedClient(options.baseUrl, options.authProvider, headers);
 		this.streams = new S2Streams(this.client, this.retryConfig);
 	}
 

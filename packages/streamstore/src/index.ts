@@ -10,6 +10,24 @@ export { S2 } from "./s2.js";
 export { S2Stream } from "./stream.js";
 
 // =============================================================================
+// PKI Authentication (Bootstrap Mode)
+// =============================================================================
+
+export {
+	createPkiAuth,
+	createBiscuitToken,
+	derivePublicKey,
+	signRequest,
+	signHeaders,
+	SigningKey,
+	type PkiAuthConfig,
+	type PkiAuthContext,
+	type BiscuitTokenOptions,
+	type SignRequestOptions,
+	type SignHeadersOptions,
+} from "./auth/index.js";
+
+// =============================================================================
 // Management Classes
 // =============================================================================
 

@@ -5,24 +5,15 @@ type ReadableStreamWithAsyncIterator<T> = ReadableStream<T> & {
 	[Symbol.asyncIterator]?: () => AsyncIterableIterator<T>;
 };
 
-import type { S2RequestOptions } from "../../../../common.js";
-import {
-	RangeNotSatisfiableError,
-	S2Error,
-	s2Error,
-} from "../../../../error.js";
-import {
-	type Client,
-	createClient,
-	createConfig,
-} from "../../../../generated/client/index.js";
+import { createAuthenticatedClient, type AuthProvider, type S2RequestOptions } from "../../../../common.js";
+import { RangeNotSatisfiableError, S2Error, s2Error } from "../../../../error.js";
+import type { Client } from "../../../../generated/client/index.js";
 import type * as API from "../../../../generated/index.js";
 import { read } from "../../../../generated/index.js";
 import type * as Types from "../../../../types.js";
 import { computeAppendRecordFormat } from "../../../../utils.js";
 import { decodeFromBase64 } from "../../../base64.js";
 import { EventStream } from "../../../event-stream.js";
-import * as Redacted from "../../../redacted.js";
 import type { AppendResult, CloseResult } from "../../../result.js";
 import { err, errClose, ok, okClose } from "../../../result.js";
 import {
@@ -380,12 +371,10 @@ export class FetchAppendSession implements TransportAppendSession {
 		if (canSetUserAgentHeader()) {
 			headers["user-agent"] = DEFAULT_USER_AGENT;
 		}
-		this.client = createClient(
-			createConfig({
-				baseUrl: transportConfig.baseUrl,
-				auth: () => Redacted.value(transportConfig.accessToken),
-				headers: headers,
-			}),
+		this.client = createAuthenticatedClient(
+			transportConfig.baseUrl,
+			transportConfig.authProvider,
+			headers,
 		);
 	}
 
@@ -604,12 +593,10 @@ export class FetchTransport implements SessionTransport {
 		if (canSetUserAgentHeader()) {
 			headers["user-agent"] = DEFAULT_USER_AGENT;
 		}
-		this.client = createClient(
-			createConfig({
-				baseUrl: config.baseUrl,
-				auth: () => Redacted.value(config.accessToken),
-				headers: headers,
-			}),
+		this.client = createAuthenticatedClient(
+			config.baseUrl,
+			config.authProvider,
+			headers,
 		);
 		this.transportConfig = config;
 	}

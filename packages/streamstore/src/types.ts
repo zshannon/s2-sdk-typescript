@@ -651,13 +651,22 @@ export interface AccessTokenScope {
 
 /**
  * Input for issuing an access token.
+ *
+ * For PKI auth, provide `publicKey` to bind the token to a client's signing key.
+ * For legacy auth, provide `id` as the token identifier.
  */
 export interface IssueAccessTokenInput {
 	/**
-	 * Access token ID.
+	 * Access token ID (legacy auth).
 	 * It must be unique to the account and between 1 and 96 bytes in length.
 	 */
-	id: string;
+	id?: string;
+	/**
+	 * Client's P-256 public key for request signing (PKI auth).
+	 * Base58-encoded compressed point (33 bytes).
+	 * The issued token will be bound to this key.
+	 */
+	publicKey?: string;
 	/** Access token scope. */
 	scope: AccessTokenScope;
 	/**

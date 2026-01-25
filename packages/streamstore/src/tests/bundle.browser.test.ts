@@ -29,7 +29,7 @@ describe("browser bundling", () => {
 				bundle: true,
 				platform: "browser",
 				target: "es2020",
-				external: ["node:http2"],
+				external: ["node:http2", "@biscuit-auth/biscuit-wasm"],
 				outfile: join(dir, "out.js"),
 				metafile: true,
 				logLevel: "silent",

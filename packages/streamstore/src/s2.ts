@@ -1,16 +1,12 @@
 import { S2AccessTokens } from "./accessTokens.js";
+import { createPkiAuth } from "./auth/pki-auth.js";
 import { S2Basin } from "./basin.js";
 import { S2Basins } from "./basins.js";
-import type { RetryConfig, S2ClientOptions } from "./common.js";
+import { createAuthenticatedClient, type AuthProvider, type RetryConfig, type S2ClientOptions } from "./common.js";
 import { S2Endpoints } from "./endpoints.js";
 import { makeServerError, S2Error } from "./error.js";
-import { createClient, createConfig } from "./generated/client/index.js";
 import type { Client } from "./generated/client/types.gen.js";
-import * as Redacted from "./lib/redacted.js";
-import {
-	canSetUserAgentHeader,
-	DEFAULT_USER_AGENT,
-} from "./lib/stream/runtime.js";
+import { canSetUserAgentHeader, DEFAULT_USER_AGENT } from "./lib/stream/runtime.js";
 import { S2Metrics } from "./metrics.js";
 
 /**
@@ -22,10 +18,11 @@ const BASIN_NAME_REGEX = /^[a-z0-9][a-z0-9-]{6,46}[a-z0-9]$/;
 /**
  * Top-level S2 SDK client.
  *
- * - Authenticates with an access token and exposes account-scoped helpers for basins, streams, access tokens and metrics.
+ * - Authenticates with an access token or PKI root key.
+ * - Exposes account-scoped helpers for basins, streams, access tokens and metrics.
  */
 export class S2 {
-	private readonly accessToken: Redacted.Redacted;
+	private readonly authProvider: AuthProvider;
 	private readonly client: Client;
 	private readonly endpoints: S2Endpoints;
 	private readonly retryConfig: RetryConfig;
@@ -44,10 +41,34 @@ export class S2 {
 	/**
 	 * Create a new S2 client.
 	 *
-	 * @param options Access token configuration.
+	 * @param options Auth configuration (either accessToken or rootKey).
 	 */
 	constructor(options: S2ClientOptions) {
-		this.accessToken = Redacted.make(options.accessToken);
+		// Validate auth options - exactly one must be specified
+		const authCount = [options.accessToken, options.rootKey, options.authContext].filter(Boolean).length;
+		if (authCount === 0) {
+			throw new S2Error({
+				message: "Must specify one of: accessToken, rootKey, or authContext for authentication.",
+				origin: "sdk",
+			});
+		}
+		if (authCount > 1) {
+			throw new S2Error({
+				message: "Specify only one of: accessToken, rootKey, or authContext.",
+				origin: "sdk",
+			});
+		}
+
+		// Create auth provider
+		if (options.authContext) {
+			this.authProvider = { type: "pki", context: options.authContext };
+		} else if (options.rootKey) {
+			const pkiAuth = createPkiAuth({ rootKey: options.rootKey });
+			this.authProvider = { type: "pki", context: pkiAuth };
+		} else {
+			this.authProvider = { type: "token", token: options.accessToken! };
+		}
+
 		// Merge timeout config: top-level options take precedence over retry.* for backwards compatibility
 		this.retryConfig = {
 			...options.retry,
@@ -66,14 +87,11 @@ export class S2 {
 		if (canSetUserAgentHeader()) {
 			headers["user-agent"] = DEFAULT_USER_AGENT;
 		}
-		this.client = createClient(
-			createConfig({
-				baseUrl: this.endpoints.accountBaseUrl(),
-				auth: () => Redacted.value(this.accessToken),
-				headers: headers,
-			}),
+		this.client = createAuthenticatedClient(
+			this.endpoints.accountBaseUrl(),
+			this.authProvider,
+			headers,
 		);
-
 		this.client.interceptors.error.use((err, res) => {
 			return makeServerError(res, err);
 		});
@@ -99,7 +117,7 @@ export class S2 {
 			});
 		}
 		return new S2Basin(name, {
-			accessToken: this.accessToken,
+			authProvider: this.authProvider,
 			baseUrl: this.endpoints.basinBaseUrl(name),
 			includeBasinHeader: this.endpoints.includeBasinHeader,
 			retryConfig: this.retryConfig,
