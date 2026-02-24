@@ -39,7 +39,9 @@ export type BiscuitTokenOptions = {
  *
  * @returns Base64-encoded Biscuit token
  */
-export async function createBiscuitToken(options: BiscuitTokenOptions): Promise<string> {
+export async function createBiscuitToken(
+	options: BiscuitTokenOptions,
+): Promise<string> {
 	const {
 		privateKey,
 		publicKey: providedPublicKey,

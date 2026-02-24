@@ -14,17 +14,17 @@ export { S2Stream } from "./stream.js";
 // =============================================================================
 
 export {
-	createPkiAuth,
+	type BiscuitTokenOptions,
 	createBiscuitToken,
+	createPkiAuth,
 	derivePublicKey,
-	signRequest,
-	signHeaders,
-	SigningKey,
 	type PkiAuthConfig,
 	type PkiAuthContext,
-	type BiscuitTokenOptions,
-	type SignRequestOptions,
 	type SignHeadersOptions,
+	SigningKey,
+	type SignRequestOptions,
+	signHeaders,
+	signRequest,
 } from "./auth/index.js";
 
 // =============================================================================

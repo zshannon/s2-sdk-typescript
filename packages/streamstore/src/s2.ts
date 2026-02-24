@@ -2,11 +2,19 @@ import { S2AccessTokens } from "./accessTokens.js";
 import { createPkiAuth } from "./auth/pki-auth.js";
 import { S2Basin } from "./basin.js";
 import { S2Basins } from "./basins.js";
-import { createAuthenticatedClient, type AuthProvider, type RetryConfig, type S2ClientOptions } from "./common.js";
+import {
+	type AuthProvider,
+	createAuthenticatedClient,
+	type RetryConfig,
+	type S2ClientOptions,
+} from "./common.js";
 import { S2Endpoints } from "./endpoints.js";
 import { makeServerError, S2Error } from "./error.js";
 import type { Client } from "./generated/client/types.gen.js";
-import { canSetUserAgentHeader, DEFAULT_USER_AGENT } from "./lib/stream/runtime.js";
+import {
+	canSetUserAgentHeader,
+	DEFAULT_USER_AGENT,
+} from "./lib/stream/runtime.js";
 import { S2Metrics } from "./metrics.js";
 
 /**
@@ -45,10 +53,15 @@ export class S2 {
 	 */
 	constructor(options: S2ClientOptions) {
 		// Validate auth options - exactly one must be specified
-		const authCount = [options.accessToken, options.rootKey, options.authContext].filter(Boolean).length;
+		const authCount = [
+			options.accessToken,
+			options.rootKey,
+			options.authContext,
+		].filter(Boolean).length;
 		if (authCount === 0) {
 			throw new S2Error({
-				message: "Must specify one of: accessToken, rootKey, or authContext for authentication.",
+				message:
+					"Must specify one of: accessToken, rootKey, or authContext for authentication.",
 				origin: "sdk",
 			});
 		}

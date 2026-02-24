@@ -1,7 +1,7 @@
 import { createBiscuitToken } from "./biscuit.js";
-import { signRequest, signHeaders } from "./sign.js";
-import { SigningKey } from "./signing-key.js";
 import type { SignHeadersOptions } from "./sign.js";
+import { signHeaders, signRequest } from "./sign.js";
+import { SigningKey } from "./signing-key.js";
 
 /**
  * Configuration for PKI authentication.
@@ -42,7 +42,9 @@ export type PkiAuthContext = {
 	/** Sign a request with RFC 9421 HTTP message signatures */
 	signRequest: (request: Request) => Promise<Request>;
 	/** Sign headers with RFC 9421 HTTP message signatures */
-	signHeaders: (options: Omit<SignHeadersOptions, "signingKey" | "expiresIn">) => Promise<void>;
+	signHeaders: (
+		options: Omit<SignHeadersOptions, "signingKey" | "expiresIn">,
+	) => Promise<void>;
 	/** The signing key (for token mode, can be used to issue sub-tokens) */
 	signingKey: SigningKey;
 };
@@ -68,13 +70,19 @@ export function createPkiAuth(config: PkiAuthConfig): PkiAuthContext {
 	if (config.token && config.signingKey) {
 		return createTokenAuth(config.token, config.signingKey, signatureExpiresIn);
 	} else if (config.rootKey) {
-		return createRootKeyAuth(config.rootKey, config.tokenExpiresIn ?? 3600, signatureExpiresIn);
+		return createRootKeyAuth(
+			config.rootKey,
+			config.tokenExpiresIn ?? 3600,
+			signatureExpiresIn,
+		);
 	} else if (config.token && !config.signingKey) {
 		throw new Error("PKI auth: token provided without signingKey");
 	} else if (!config.token && config.signingKey) {
 		throw new Error("PKI auth: signingKey provided without token");
 	} else {
-		throw new Error("PKI auth: either (token + signingKey) or rootKey required");
+		throw new Error(
+			"PKI auth: either (token + signingKey) or rootKey required",
+		);
 	}
 }
 
@@ -90,7 +98,10 @@ function createTokenAuth(
 	}
 
 	function extractPath(urlOrRequest: string | Request): string {
-		const url = typeof urlOrRequest === "string" ? new URL(urlOrRequest) : new URL(urlOrRequest.url);
+		const url =
+			typeof urlOrRequest === "string"
+				? new URL(urlOrRequest)
+				: new URL(urlOrRequest.url);
 		return url.pathname;
 	}
 
@@ -106,17 +117,31 @@ function createTokenAuth(
 		async signRequest(request: Request): Promise<Request> {
 			const path = extractPath(request);
 			if (isAccessTokenEndpoint(path)) {
-				throw new Error("Token mode cannot be used for access token endpoints. Use root key mode instead.");
+				throw new Error(
+					"Token mode cannot be used for access token endpoints. Use root key mode instead.",
+				);
 			}
-			return signRequest({ request, signingKey, expiresIn: signatureExpiresIn });
+			return signRequest({
+				request,
+				signingKey,
+				expiresIn: signatureExpiresIn,
+			});
 		},
 
-		async signHeaders(options: Omit<SignHeadersOptions, "signingKey" | "expiresIn">): Promise<void> {
+		async signHeaders(
+			options: Omit<SignHeadersOptions, "signingKey" | "expiresIn">,
+		): Promise<void> {
 			const path = extractPath(options.url);
 			if (isAccessTokenEndpoint(path)) {
-				throw new Error("Token mode cannot be used for access token endpoints. Use root key mode instead.");
+				throw new Error(
+					"Token mode cannot be used for access token endpoints. Use root key mode instead.",
+				);
 			}
-			return signHeaders({ ...options, signingKey, expiresIn: signatureExpiresIn });
+			return signHeaders({
+				...options,
+				signingKey,
+				expiresIn: signatureExpiresIn,
+			});
 		},
 	};
 }
@@ -152,11 +177,21 @@ function createRootKeyAuth(
 		getToken,
 
 		async signRequest(request: Request): Promise<Request> {
-			return signRequest({ request, signingKey: clientKey, expiresIn: signatureExpiresIn });
+			return signRequest({
+				request,
+				signingKey: clientKey,
+				expiresIn: signatureExpiresIn,
+			});
 		},
 
-		async signHeaders(options: Omit<SignHeadersOptions, "signingKey" | "expiresIn">): Promise<void> {
-			return signHeaders({ ...options, signingKey: clientKey, expiresIn: signatureExpiresIn });
+		async signHeaders(
+			options: Omit<SignHeadersOptions, "signingKey" | "expiresIn">,
+		): Promise<void> {
+			return signHeaders({
+				...options,
+				signingKey: clientKey,
+				expiresIn: signatureExpiresIn,
+			});
 		},
 	};
 }

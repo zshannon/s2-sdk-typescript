@@ -5,8 +5,16 @@ type ReadableStreamWithAsyncIterator<T> = ReadableStream<T> & {
 	[Symbol.asyncIterator]?: () => AsyncIterableIterator<T>;
 };
 
-import { createAuthenticatedClient, type AuthProvider, type S2RequestOptions } from "../../../../common.js";
-import { RangeNotSatisfiableError, S2Error, s2Error } from "../../../../error.js";
+import {
+	type AuthProvider,
+	createAuthenticatedClient,
+	type S2RequestOptions,
+} from "../../../../common.js";
+import {
+	RangeNotSatisfiableError,
+	S2Error,
+	s2Error,
+} from "../../../../error.js";
 import type { Client } from "../../../../generated/client/index.js";
 import type * as API from "../../../../generated/index.js";
 import { read } from "../../../../generated/index.js";

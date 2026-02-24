@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createBiscuitToken, derivePublicKey } from "../auth/biscuit.js";
 import { createPkiAuth } from "../auth/pki-auth.js";
+import { signHeaders, signRequest } from "../auth/sign.js";
 import { SigningKey } from "../auth/signing-key.js";
-import { signRequest, signHeaders } from "../auth/sign.js";
 
 // Test key pair (P256)
 const TEST_PRIVATE_KEY = "ByDGSRM82bqEVQoGYpZzvmmHujrB32UN1sr7WbKN6TPQ";
@@ -209,8 +209,12 @@ describe("createPkiAuth", () => {
 			expect(signedRequest.headers.get("signature")).toBeTruthy();
 			expect(signedRequest.headers.get("signature-input")).toBeTruthy();
 			// Signature should use CLIENT key's public key as keyid (not root key)
-			expect(signedRequest.headers.get("signature-input")).toContain(auth.publicKey);
-			expect(signedRequest.headers.get("signature-input")).not.toContain(TEST_PUBLIC_KEY);
+			expect(signedRequest.headers.get("signature-input")).toContain(
+				auth.publicKey,
+			);
+			expect(signedRequest.headers.get("signature-input")).not.toContain(
+				TEST_PUBLIC_KEY,
+			);
 		});
 	});
 
@@ -256,7 +260,9 @@ describe("createPkiAuth", () => {
 			expect(signedRequest.headers.get("signature")).toBeTruthy();
 			expect(signedRequest.headers.get("signature-input")).toBeTruthy();
 			// Signature should use signing key's public key as keyid
-			expect(signedRequest.headers.get("signature-input")).toContain(signingKey.publicKeyBase58());
+			expect(signedRequest.headers.get("signature-input")).toContain(
+				signingKey.publicKeyBase58(),
+			);
 		});
 
 		it("signs headers with the signing key", async () => {
@@ -283,27 +289,29 @@ describe("createPkiAuth", () => {
 			expect(headers["signature"]).toBeTruthy();
 			expect(headers["signature-input"]).toBeTruthy();
 			// Signature should use signing key's public key as keyid
-			expect(headers["signature-input"]).toContain(signingKey.publicKeyBase58());
+			expect(headers["signature-input"]).toContain(
+				signingKey.publicKeyBase58(),
+			);
 		});
 	});
 
 	describe("validation", () => {
 		it("throws when token provided without signingKey", () => {
 			expect(() => createPkiAuth({ token: "test-token" })).toThrow(
-				"token provided without signingKey"
+				"token provided without signingKey",
 			);
 		});
 
 		it("throws when signingKey provided without token", () => {
 			const signingKey = SigningKey.generate();
 			expect(() => createPkiAuth({ signingKey })).toThrow(
-				"signingKey provided without token"
+				"signingKey provided without token",
 			);
 		});
 
 		it("throws when neither rootKey nor token+signingKey provided", () => {
 			expect(() => createPkiAuth({})).toThrow(
-				"either (token + signingKey) or rootKey required"
+				"either (token + signingKey) or rootKey required",
 			);
 		});
 	});

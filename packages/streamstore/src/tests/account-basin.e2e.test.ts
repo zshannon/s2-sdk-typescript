@@ -1,6 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { type S2ClientOptions, S2Environment } from "../common.js";
-import { AppendInput, AppendRecord, createPkiAuth, S2, SigningKey, type S2Basin } from "../index.js";
+import {
+	AppendInput,
+	AppendRecord,
+	createPkiAuth,
+	S2,
+	type S2Basin,
+	SigningKey,
+} from "../index.js";
 import { randomToken } from "../lib/base64.js";
 
 const hasEnv = !!process.env.S2_ACCESS_TOKEN || !!process.env.S2_ROOT_KEY;

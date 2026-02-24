@@ -28,10 +28,13 @@ describe("PKI Auth Integration", () => {
 		it("allows signing requests to /access-tokens/{id} endpoints", async () => {
 			const auth = createPkiAuth({ rootKey: TEST_ROOT_KEY });
 
-			const request = new Request("https://example.com/v1/access-tokens/token-123", {
-				method: "DELETE",
-				headers: { authorization: "Bearer test" },
-			});
+			const request = new Request(
+				"https://example.com/v1/access-tokens/token-123",
+				{
+					method: "DELETE",
+					headers: { authorization: "Bearer test" },
+				},
+			);
 
 			const signed = await auth.signRequest(request);
 			expect(signed.headers.get("signature")).toBeTruthy();
@@ -64,10 +67,13 @@ describe("PKI Auth Integration", () => {
 		it("signs stream endpoints with root key", async () => {
 			const auth = createPkiAuth({ rootKey: TEST_ROOT_KEY });
 
-			const request = new Request("https://example.com/v1/streams/my-stream/records", {
-				method: "GET",
-				headers: { authorization: "Bearer test" },
-			});
+			const request = new Request(
+				"https://example.com/v1/streams/my-stream/records",
+				{
+					method: "GET",
+					headers: { authorization: "Bearer test" },
+				},
+			);
 
 			const signed = await auth.signRequest(request);
 			expect(signed.headers.get("signature")).toBeTruthy();
@@ -116,10 +122,13 @@ describe("PKI Auth Integration", () => {
 				signingKey,
 			});
 
-			const request = new Request("https://example.com/v1/streams/my-stream/records", {
-				method: "GET",
-				headers: { authorization: "Bearer access-token" },
-			});
+			const request = new Request(
+				"https://example.com/v1/streams/my-stream/records",
+				{
+					method: "GET",
+					headers: { authorization: "Bearer access-token" },
+				},
+			);
 
 			const signed = await auth.signRequest(request);
 			expect(signed.headers.get("signature")).toBeTruthy();
@@ -161,7 +170,7 @@ describe("PKI Auth Integration", () => {
 
 			// Token mode should NOT be able to issue new access tokens
 			await expect(auth.signRequest(request)).rejects.toThrow(
-				"Token mode cannot be used for access token endpoints"
+				"Token mode cannot be used for access token endpoints",
 			);
 		});
 	});

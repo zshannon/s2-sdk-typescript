@@ -1,6 +1,13 @@
-import { createAuthenticatedClient, type AuthProvider, type RetryConfig } from "./common.js";
+import {
+	type AuthProvider,
+	createAuthenticatedClient,
+	type RetryConfig,
+} from "./common.js";
 import type { Client } from "./generated/client/types.gen.js";
-import { canSetUserAgentHeader, DEFAULT_USER_AGENT } from "./lib/stream/runtime.js";
+import {
+	canSetUserAgentHeader,
+	DEFAULT_USER_AGENT,
+} from "./lib/stream/runtime.js";
 import type { SessionTransports, TransportConfig } from "./lib/stream/types.js";
 import { S2Stream } from "./stream.js";
 import { S2Streams } from "./streams.js";
@@ -45,7 +52,11 @@ export class S2Basin {
 		if (canSetUserAgentHeader()) {
 			headers["user-agent"] = DEFAULT_USER_AGENT;
 		}
-		this.client = createAuthenticatedClient(options.baseUrl, options.authProvider, headers);
+		this.client = createAuthenticatedClient(
+			options.baseUrl,
+			options.authProvider,
+			headers,
+		);
 		this.streams = new S2Streams(this.client, this.retryConfig);
 	}
 

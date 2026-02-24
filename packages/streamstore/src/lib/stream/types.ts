@@ -1,4 +1,8 @@
-import type { AuthProvider, RetryConfig, S2RequestOptions } from "../../common.js";
+import type {
+	AuthProvider,
+	RetryConfig,
+	S2RequestOptions,
+} from "../../common.js";
 import { S2Error } from "../../error.js";
 import type * as API from "../../generated/index.js";
 import type * as Types from "../../types.js";

@@ -1,4 +1,17 @@
-export { createBiscuitToken, derivePublicKey, type BiscuitTokenOptions } from "./biscuit.js";
-export { signRequest, signHeaders, type SignRequestOptions, type SignHeadersOptions } from "./sign.js";
-export { createPkiAuth, type PkiAuthConfig, type PkiAuthContext } from "./pki-auth.js";
+export {
+	type BiscuitTokenOptions,
+	createBiscuitToken,
+	derivePublicKey,
+} from "./biscuit.js";
+export {
+	createPkiAuth,
+	type PkiAuthConfig,
+	type PkiAuthContext,
+} from "./pki-auth.js";
+export {
+	type SignHeadersOptions,
+	type SignRequestOptions,
+	signHeaders,
+	signRequest,
+} from "./sign.js";
 export { SigningKey } from "./signing-key.js";

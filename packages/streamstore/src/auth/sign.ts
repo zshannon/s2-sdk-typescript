@@ -69,14 +69,21 @@ function getAuthority(url: URL): string {
  *
  * @returns A new Request with signature headers added
  */
-export async function signRequest(options: SignRequestOptions): Promise<Request> {
+export async function signRequest(
+	options: SignRequestOptions,
+): Promise<Request> {
 	const { request, signingKey } = options;
 
 	// Clone request headers
 	const headers = new Headers(request.headers);
 
 	// Determine components to sign
-	const components: string[] = ["@method", "@path", "@authority", "authorization"];
+	const components: string[] = [
+		"@method",
+		"@path",
+		"@authority",
+		"authorization",
+	];
 
 	// Compute content-digest if body exists
 	const body = await request.clone().arrayBuffer();
