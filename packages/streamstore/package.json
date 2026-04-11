@@ -41,7 +41,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@biscuit-auth/biscuit-wasm": "^0.6.0-beta.1",
+    "@bufbuild/protobuf": "^2.0.0",
     "@noble/curves": "^2.0.1",
     "@noble/hashes": "^1.8.0",
     "@protobuf-ts/runtime": "^2.11.1",
