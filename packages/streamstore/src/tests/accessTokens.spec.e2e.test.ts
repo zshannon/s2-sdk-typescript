@@ -29,7 +29,7 @@ describeIf("Access tokens spec parity", () => {
 		args: Parameters<S2["accessTokens"]["issue"]>[0],
 	) => {
 		const resp = await s2.accessTokens.issue(args);
-		createdTokenIds.push(args.id);
+		if (args.id) createdTokenIds.push(args.id);
 		return resp;
 	};
 
