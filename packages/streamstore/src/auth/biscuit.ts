@@ -5,7 +5,7 @@
 
 import { create, toBinary } from "@bufbuild/protobuf";
 import { p256 } from "@noble/curves/nist.js";
-import { base64 } from "@scure/base";
+import { base64url } from "@scure/base";
 import {
 	BiscuitSchema,
 	BlockSchema,
@@ -183,7 +183,7 @@ export function createBiscuitToken(options: BiscuitTokenOptions): string {
 		rules: [],
 		scope: [],
 		symbols: symbols.customSymbols(),
-		version: 3,
+		version: 4,
 	}));
 
 	// Ephemeral next key
@@ -212,7 +212,7 @@ export function createBiscuitToken(options: BiscuitTokenOptions): string {
 		proof,
 	});
 
-	return base64.encode(toBinary(BiscuitSchema, biscuit));
+	return base64url.encode(toBinary(BiscuitSchema, biscuit));
 }
 
 /**

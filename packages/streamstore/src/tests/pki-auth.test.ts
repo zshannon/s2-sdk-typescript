@@ -20,7 +20,7 @@ describe("derivePublicKey", () => {
 });
 
 describe("createBiscuitToken", () => {
-	it("creates a valid base64-encoded token", async () => {
+	it("creates a valid base64url-padded token (biscuit spec)", async () => {
 		const token = await createBiscuitToken({
 			privateKey: TEST_PRIVATE_KEY,
 			expiresIn: 3600,
@@ -28,8 +28,14 @@ describe("createBiscuitToken", () => {
 
 		expect(token).toBeTruthy();
 		expect(typeof token).toBe("string");
-		// Base64 encoded token should be decodable
-		expect(() => atob(token)).not.toThrow();
+
+		// Biscuit spec mandates base64url (RFC 4648 §5) with padding.
+		// base64url uses - and _ instead of + and /
+		expect(token).not.toMatch(/[+/]/);
+
+		// Must be decodable as base64url
+		const { base64url } = await import("@scure/base");
+		expect(() => base64url.decode(token)).not.toThrow();
 	});
 
 	it("creates token with custom op groups", async () => {
