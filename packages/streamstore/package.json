@@ -1,6 +1,6 @@
 {
   "name": "@zshannon/streamstore",
-  "version": "0.22.8",
+  "version": "0.24.3",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -13,7 +13,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
-    "build": "rm -rf dist && bun ../../scripts/generate-version.ts && tsc --project tsconfig.build.esm.json && tsc --project tsconfig.build.cjs.json && bun ../../scripts/postbuild.ts && attw --pack",
+    "build": "rm -rf dist && bun ../../scripts/generate-version.ts && tsc --project tsconfig.build.esm.json && tsc --project tsconfig.build.cjs.json && bun ../../scripts/postbuild.ts && NPM_CONFIG_CACHE=\"${TMPDIR:-/tmp}/s2-sdk-typescript-npm-cache\" attw --pack",
     "test": "vitest --run",
     "check": "tsc --noEmit",
     "gen:version": "bun ../../scripts/generate-version.ts",

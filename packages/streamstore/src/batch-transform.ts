@@ -59,29 +59,34 @@ export class BatchTransform extends TransformStream<AppendRecord, BatchOutput> {
 	private nextMatchSeqNum?: number;
 
 	constructor(args?: BatchTransformOptions) {
-		let controller: TransformStreamDefaultController<BatchOutput>;
-
+		let controller!: TransformStreamDefaultController<BatchOutput>;
 		super({
 			start: (c) => {
 				controller = c;
 			},
-			transform: (chunk, c) => {
-				// Store controller reference on first transform
-				if (!this.controller) {
-					this.controller = c;
-				}
+			transform: (chunk) => {
 				this.handleRecord(chunk);
 			},
 			flush: () => {
 				this.flush();
 			},
-		});
+			cancel: () => {
+				this.cancelLingerTimer();
+			},
+		} as Transformer<AppendRecord, BatchOutput> & { cancel: () => void });
+
+		// Set controller reference captured during start
+		this.controller = controller;
 
 		// Validate configuration
 		if (args?.maxBatchRecords !== undefined) {
-			if (args.maxBatchRecords < 1 || args.maxBatchRecords > 1000) {
+			if (
+				!Number.isFinite(args.maxBatchRecords) ||
+				args.maxBatchRecords < 1 ||
+				args.maxBatchRecords > 1000
+			) {
 				throw new S2Error({
-					message: `maxBatchRecords must be between 1 and 1000 (inclusive); got ${args.maxBatchRecords}`,
+					message: `maxBatchRecords must be a finite number between 1 and 1000 (inclusive); got ${args.maxBatchRecords}`,
 					status: 400,
 					origin: "sdk",
 				});
@@ -89,18 +94,25 @@ export class BatchTransform extends TransformStream<AppendRecord, BatchOutput> {
 		}
 		if (args?.maxBatchBytes !== undefined) {
 			const max = 1024 * 1024;
-			if (args.maxBatchBytes < 1 || args.maxBatchBytes > max) {
+			if (
+				!Number.isFinite(args.maxBatchBytes) ||
+				args.maxBatchBytes < 1 ||
+				args.maxBatchBytes > max
+			) {
 				throw new S2Error({
-					message: `maxBatchBytes must be between 1 and ${max} (1 MiB) bytes (inclusive); got ${args.maxBatchBytes}`,
+					message: `maxBatchBytes must be a finite number between 1 and ${max} (1 MiB) bytes (inclusive); got ${args.maxBatchBytes}`,
 					status: 400,
 					origin: "sdk",
 				});
 			}
 		}
 		if (args?.lingerDurationMillis !== undefined) {
-			if (args.lingerDurationMillis < 0) {
+			if (
+				!Number.isFinite(args.lingerDurationMillis) ||
+				args.lingerDurationMillis < 0
+			) {
 				throw new S2Error({
-					message: `lingerDurationMillis must be >= 0; got ${args.lingerDurationMillis}`,
+					message: `lingerDurationMillis must be a finite number >= 0; got ${args.lingerDurationMillis}`,
 					status: 400,
 					origin: "sdk",
 				});
@@ -118,8 +130,11 @@ export class BatchTransform extends TransformStream<AppendRecord, BatchOutput> {
 	private handleRecord(record: AppendRecord): void {
 		const recordSize = meteredBytes(record);
 
-		// Reject individual records that exceed the max batch size
+		// Reject individual records that exceed the max batch size.
+		// Cancel the linger timer first — the throw will error the stream,
+		// and we don't want the timer to fire on an errored controller.
 		if (recordSize > this.maxBatchBytes) {
+			this.cancelLingerTimer();
 			throw new S2Error({
 				message: `Record size ${recordSize} bytes exceeds maximum batch size of ${this.maxBatchBytes} bytes`,
 				status: 400,
@@ -128,7 +143,7 @@ export class BatchTransform extends TransformStream<AppendRecord, BatchOutput> {
 		}
 
 		// Start linger timer on first record added to an empty batch
-		if (this.currentBatch.length === 0 && this.lingerDuration > 0) {
+		if (this.currentBatch.length === 0 && this.lingerDuration >= 0) {
 			this.startLingerTimer();
 		}
 
@@ -141,7 +156,7 @@ export class BatchTransform extends TransformStream<AppendRecord, BatchOutput> {
 		if (wouldExceedRecords || wouldExceedBytes) {
 			this.flush();
 			// Restart linger timer for new batch
-			if (this.lingerDuration > 0) {
+			if (this.lingerDuration >= 0) {
 				this.startLingerTimer();
 			}
 		}
@@ -192,7 +207,21 @@ export class BatchTransform extends TransformStream<AppendRecord, BatchOutput> {
 		this.lingerTimer = setTimeout(() => {
 			this.lingerTimer = null;
 			if (this.currentBatch.length > 0) {
-				this.flush();
+				try {
+					this.flush();
+				} catch (err) {
+					if (err instanceof TypeError) {
+						// Stream lifecycle issue (closed/errored controller) — safe to discard.
+						return;
+					}
+					// Validation or application error (e.g. S2Error from AppendInput.create) —
+					// propagate to the readable side so downstream consumers see the failure.
+					try {
+						this.controller?.error(err);
+					} catch {
+						// controller.error() itself may throw if already errored
+					}
+				}
 			}
 		}, this.lingerDuration);
 	}

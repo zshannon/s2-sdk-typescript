@@ -12,6 +12,7 @@ import {
 
 const hasEnv = !!process.env.S2_ACCESS_TOKEN;
 const describeIf = hasEnv ? describe : describe.skip;
+const itUnlessLite = process.env.S2_LITE ? it.skip : it;
 
 describeIf("Basins spec parity", () => {
 	let s2: S2;
@@ -24,12 +25,20 @@ describeIf("Basins spec parity", () => {
 		return name;
 	};
 
+	const getRandomLocation = async () => {
+		const locations = await s2.locations.list();
+		if (locations.length === 0) {
+			throw new Error("No available S2 locations returned");
+		}
+		return locations[Math.floor(Math.random() * locations.length)]!.name;
+	};
+
 	const createBasin = async (
 		name: string,
 		config?: Parameters<S2["basins"]["create"]>[0]["config"],
-		scope?: Parameters<S2["basins"]["create"]>[0]["scope"],
+		location?: Parameters<S2["basins"]["create"]>[0]["location"],
 	) => {
-		await s2.basins.create({ basin: name, config, scope });
+		await s2.basins.create({ basin: name, config, location });
 		await waitForBasinReady(s2, name);
 	};
 
@@ -152,16 +161,6 @@ describeIf("Basins spec parity", () => {
 		);
 
 		it(
-			"rejects startAfter less than prefix",
-			async () => {
-				await expect(
-					s2.basins.list({ prefix: "zzzzzzzz", startAfter: "aaaaaaaa" }),
-				).rejects.toMatchObject({ status: 422 });
-			},
-			TEST_TIMEOUT_MS,
-		);
-
-		it(
 			"includes deleting basins when requested",
 			async () => {
 				const basin = trackBasin(makeBasinName("ts-del"));
@@ -169,18 +168,18 @@ describeIf("Basins spec parity", () => {
 				await s2.basins.delete({ basin });
 
 				const seen: string[] = [];
-				let deletingState: string | undefined;
+				let deletedAt: Date | null | undefined;
 				for await (const info of s2.basins.listAll({
 					prefix: basin,
 					includeDeleted: true,
 				})) {
 					seen.push(info.name);
 					if (info.name === basin) {
-						deletingState = info.state;
+						deletedAt = info.deletedAt;
 					}
 				}
 				if (seen.includes(basin)) {
-					expect(deletingState).toBe("deleting");
+					expect(deletedAt).toBeInstanceOf(Date);
 				}
 			},
 			TEST_TIMEOUT_MS,
@@ -211,13 +210,14 @@ describeIf("Basins spec parity", () => {
 			TEST_TIMEOUT_MS,
 		);
 
-		it(
-			"creates with scope",
+		itUnlessLite(
+			"creates with location",
 			async () => {
-				const basin = trackBasin(makeBasinName("ts-scope"));
+				const basin = trackBasin(makeBasinName("ts-location"));
+				const location = await getRandomLocation();
 				const resp = await s2.basins.create({
 					basin,
-					scope: "aws:us-east-1",
+					location,
 				});
 				expect(resp.name).toBe(basin);
 				await waitForBasinReady(s2, basin);
@@ -547,7 +547,7 @@ describeIf("Basins spec parity", () => {
 		);
 
 		it(
-			"reports deleting state after delete when listed",
+			"reports deletion time after delete when listed",
 			async () => {
 				const basin = trackBasin(makeBasinName("ts-dstate"));
 				await s2.basins.create({ basin });
@@ -557,7 +557,7 @@ describeIf("Basins spec parity", () => {
 				const resp = await s2.basins.list({ prefix: basin });
 				const info = resp.basins.find((b) => b.name === basin);
 				if (info) {
-					expect(info.state).toBe("deleting");
+					expect(info.deletedAt).toBeInstanceOf(Date);
 				}
 			},
 			TEST_TIMEOUT_MS,

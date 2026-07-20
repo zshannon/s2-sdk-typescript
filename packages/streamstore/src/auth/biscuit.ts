@@ -9,16 +9,16 @@ import { base64url } from "@scure/base";
 import {
 	BiscuitSchema,
 	BlockSchema,
-	CheckSchema,
 	Check_Kind,
+	CheckSchema,
 	ExpressionSchema,
 	FactSchema,
 	OpBinary_Kind,
 	OpSchema,
 	PredicateSchema,
 	ProofSchema,
-	PublicKeySchema,
 	PublicKey_Algorithm,
+	PublicKeySchema,
 	RuleSchema,
 	SignedBlockSchema,
 	TermSchema,
@@ -28,10 +28,34 @@ import { SigningKey } from "./signing-key.js";
 // ─── Symbol table ───
 
 const DEFAULT_SYMBOLS = [
-	"read", "write", "resource", "operation", "right", "time", "role", "owner",
-	"tenant", "namespace", "user", "team", "service", "admin", "email", "group",
-	"member", "ip_address", "client", "client_ip", "domain", "path", "version",
-	"cluster", "node", "hostname", "nonce", "query",
+	"read",
+	"write",
+	"resource",
+	"operation",
+	"right",
+	"time",
+	"role",
+	"owner",
+	"tenant",
+	"namespace",
+	"user",
+	"team",
+	"service",
+	"admin",
+	"email",
+	"group",
+	"member",
+	"ip_address",
+	"client",
+	"client_ip",
+	"domain",
+	"path",
+	"version",
+	"cluster",
+	"node",
+	"hostname",
+	"nonce",
+	"query",
 ];
 
 const CUSTOM_SYMBOL_START = 1024;
@@ -44,7 +68,8 @@ class SymbolTable {
 		const defaultIdx = DEFAULT_SYMBOLS.indexOf(name);
 		if (defaultIdx !== -1) return defaultIdx;
 		for (let i = DEFAULT_SYMBOLS.length; i < this.#symbols.length; i++) {
-			if (this.#symbols[i] === name) return CUSTOM_SYMBOL_START + (i - DEFAULT_SYMBOLS.length);
+			if (this.#symbols[i] === name)
+				return CUSTOM_SYMBOL_START + (i - DEFAULT_SYMBOLS.length);
 		}
 		this.#symbols.push(name);
 		return this.#nextCustom++;
@@ -78,7 +103,10 @@ function concat(...arrays: Uint8Array[]): Uint8Array {
 	for (const arr of arrays) length += arr.length;
 	const result = new Uint8Array(length);
 	let offset = 0;
-	for (const arr of arrays) { result.set(arr, offset); offset += arr.length; }
+	for (const arr of arrays) {
+		result.set(arr, offset);
+		offset += arr.length;
+	}
 	return result;
 }
 
@@ -145,59 +173,124 @@ export function createBiscuitToken(options: BiscuitTokenOptions): string {
 	const symbols = new SymbolTable();
 
 	const facts = [
-		makeFact(symbols, "public_key", [{ type: "string", value: publicKeyBase58 }]),
+		makeFact(symbols, "public_key", [
+			{ type: "string", value: publicKeyBase58 },
+		]),
 		makeFact(symbols, "expires", [{ type: "integer", value: expiresTs }]),
 		...opGroups.map(({ level, access }) =>
-			makeFact(symbols, "op_group", [{ type: "string", value: level }, { type: "string", value: access }]),
+			makeFact(symbols, "op_group", [
+				{ type: "string", value: level },
+				{ type: "string", value: access },
+			]),
 		),
-		makeFact(symbols, "basin_scope", [{ type: "string", value: basinScope.type }, { type: "string", value: basinScope.value }]),
-		makeFact(symbols, "stream_scope", [{ type: "string", value: streamScope.type }, { type: "string", value: streamScope.value }]),
-		makeFact(symbols, "access_token_scope", [{ type: "string", value: accessTokenScope.type }, { type: "string", value: accessTokenScope.value }]),
+		makeFact(symbols, "basin_scope", [
+			{ type: "string", value: basinScope.type },
+			{ type: "string", value: basinScope.value },
+		]),
+		makeFact(symbols, "stream_scope", [
+			{ type: "string", value: streamScope.type },
+			{ type: "string", value: streamScope.value },
+		]),
+		makeFact(symbols, "access_token_scope", [
+			{ type: "string", value: accessTokenScope.type },
+			{ type: "string", value: accessTokenScope.value },
+		]),
 	];
 
 	// check if time($t), $t < expiresTs
 	const tVar = symbols.intern("t");
-	const checks = [create(CheckSchema, {
-		kind: Check_Kind.One,
-		queries: [create(RuleSchema, {
-			body: [create(PredicateSchema, {
-				name: BigInt(symbols.intern("time")),
-				terms: [create(TermSchema, { Content: { case: "variable", value: tVar } })],
-			})],
-			expressions: [create(ExpressionSchema, {
-				ops: [
-					create(OpSchema, { Content: { case: "value", value: create(TermSchema, { Content: { case: "variable", value: tVar } }) } }),
-					create(OpSchema, { Content: { case: "value", value: create(TermSchema, { Content: { case: "integer", value: BigInt(expiresTs) } }) } }),
-					create(OpSchema, { Content: { case: "Binary", value: { kind: OpBinary_Kind.LessThan, ffiName: 0n, $typeName: "biscuit.format.schema.OpBinary" } } }),
-				],
-			})],
-			head: create(PredicateSchema, { name: BigInt(symbols.intern("query")), terms: [] }),
-			scope: [],
-		})],
-	})];
+	const checks = [
+		create(CheckSchema, {
+			kind: Check_Kind.One,
+			queries: [
+				create(RuleSchema, {
+					body: [
+						create(PredicateSchema, {
+							name: BigInt(symbols.intern("time")),
+							terms: [
+								create(TermSchema, {
+									Content: { case: "variable", value: tVar },
+								}),
+							],
+						}),
+					],
+					expressions: [
+						create(ExpressionSchema, {
+							ops: [
+								create(OpSchema, {
+									Content: {
+										case: "value",
+										value: create(TermSchema, {
+											Content: { case: "variable", value: tVar },
+										}),
+									},
+								}),
+								create(OpSchema, {
+									Content: {
+										case: "value",
+										value: create(TermSchema, {
+											Content: { case: "integer", value: BigInt(expiresTs) },
+										}),
+									},
+								}),
+								create(OpSchema, {
+									Content: {
+										case: "Binary",
+										value: {
+											kind: OpBinary_Kind.LessThan,
+											ffiName: 0n,
+											$typeName: "biscuit.format.schema.OpBinary",
+										},
+									},
+								}),
+							],
+						}),
+					],
+					head: create(PredicateSchema, {
+						name: BigInt(symbols.intern("query")),
+						terms: [],
+					}),
+					scope: [],
+				}),
+			],
+		}),
+	];
 
-	const blockData = toBinary(BlockSchema, create(BlockSchema, {
-		checks,
-		facts,
-		publicKeys: [],
-		rules: [],
-		scope: [],
-		symbols: symbols.customSymbols(),
-		version: 4,
-	}));
+	const blockData = toBinary(
+		BlockSchema,
+		create(BlockSchema, {
+			checks,
+			facts,
+			publicKeys: [],
+			rules: [],
+			scope: [],
+			symbols: symbols.customSymbols(),
+			version: 4,
+		}),
+	);
 
 	// Ephemeral next key
 	const nextPrivKey = p256.utils.randomSecretKey();
 	const nextPubKey = p256.getPublicKey(nextPrivKey, true);
 
 	// Sign
-	const payload = signaturePayloadV1(blockData, PublicKey_Algorithm.SECP256R1, nextPubKey);
-	const signature = p256.sign(payload, rootKeyBytes, { format: "der", lowS: true });
+	const payload = signaturePayloadV1(
+		blockData,
+		PublicKey_Algorithm.SECP256R1,
+		nextPubKey,
+	);
+	const signature = p256.sign(payload, rootKeyBytes, {
+		format: "der",
+		lowS: true,
+	});
 
 	// Assemble
 	const signedBlock = create(SignedBlockSchema, {
 		block: blockData,
-		nextKey: create(PublicKeySchema, { algorithm: PublicKey_Algorithm.SECP256R1, key: nextPubKey }),
+		nextKey: create(PublicKeySchema, {
+			algorithm: PublicKey_Algorithm.SECP256R1,
+			key: nextPubKey,
+		}),
 		signature,
 		version: 1,
 	});
@@ -236,9 +329,13 @@ function makeFact(symbols: SymbolTable, name: string, terms: TermValue[]) {
 			name: BigInt(symbols.intern(name)),
 			terms: terms.map((t) => {
 				if (t.type === "string") {
-					return create(TermSchema, { Content: { case: "string", value: BigInt(symbols.intern(t.value)) } });
+					return create(TermSchema, {
+						Content: { case: "string", value: BigInt(symbols.intern(t.value)) },
+					});
 				}
-				return create(TermSchema, { Content: { case: "integer", value: BigInt(t.value) } });
+				return create(TermSchema, {
+					Content: { case: "integer", value: BigInt(t.value) },
+				});
 			}),
 		}),
 	});

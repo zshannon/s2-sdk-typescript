@@ -3,6 +3,7 @@
  */
 
 import createDebug from "debug";
+import { S2Error } from "../error.js";
 
 const debug = createDebug("s2:event-stream");
 
@@ -49,12 +50,22 @@ export class EventStream<T>
 		super({
 			async pull(downstream) {
 				try {
-					while (true) {
+					while ((downstream.desiredSize ?? 0) > 0) {
 						debug("pull loop, eventstream=%s", eventStreamId);
 						const match = findBoundary(buffer);
 						if (!match) {
 							const chunk = await upstream.read();
-							if (chunk.done) return downstream.close();
+							if (chunk.done) {
+								if (buffer.length > 0) {
+									throw new S2Error({
+										message: "SSE stream closed with incomplete data remaining",
+										status: 502,
+										code: "STREAM_CLOSED_PREMATURELY",
+										origin: "sdk",
+									});
+								}
+								return downstream.close();
+							}
 							buffer = concatBuffer(buffer, chunk.value);
 							continue;
 						}
@@ -66,17 +77,20 @@ export class EventStream<T>
 								for (const chunk of item.value) {
 									downstream.enqueue(chunk);
 								}
-							} else if (item.value) {
+							} else if (item.value !== undefined) {
 								downstream.enqueue(item.value);
 							} else if (item.done) {
 								await upstream.cancel("done");
 								downstream.close();
+								return;
 							}
 						}
 					}
 				} catch (e) {
 					downstream.error(e);
-					await upstream.cancel(e);
+					try {
+						await upstream.cancel(e);
+					} catch {}
 				}
 			},
 			cancel: (reason) => upstream.cancel(reason),
@@ -111,12 +125,20 @@ export class EventStream<T>
 				return { done: false, value: r.value };
 			},
 			throw: async (e) => {
-				await reader.cancel(e);
+				try {
+					await reader.cancel(e);
+				} catch (err: any) {
+					if (err?.code !== "ERR_INVALID_STATE") throw err;
+				}
 				reader.releaseLock();
 				return { done: true, value: undefined };
 			},
 			return: async () => {
-				await reader.cancel("done");
+				try {
+					await reader.cancel("done");
+				} catch (err: any) {
+					if (err?.code !== "ERR_INVALID_STATE") throw err;
+				}
 				reader.releaseLock();
 				return { done: true, value: undefined };
 			},
@@ -189,8 +211,15 @@ function parseMessage<T>(
 		if (!line || line.startsWith(":")) continue;
 		ignore = false;
 		const i = line.indexOf(":");
-		const field = line.slice(0, i);
-		const value = line[i + 1] === " " ? line.slice(i + 2) : line.slice(i + 1);
+		let field: string;
+		let value: string;
+		if (i === -1) {
+			field = line;
+			value = "";
+		} else {
+			field = line.slice(0, i);
+			value = line[i + 1] === " " ? line.slice(i + 2) : line.slice(i + 1);
+		}
 		if (field === "data") dataLines.push(value);
 		else if (field === "event") ret.event = value;
 		else if (field === "id") ret.id = value;

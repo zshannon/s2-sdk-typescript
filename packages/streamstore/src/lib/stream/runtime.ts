@@ -53,14 +53,17 @@ export function supportsHttp2(): boolean {
 
 	switch (runtime) {
 		case "node":
-		case "deno":
 			return true;
 
+		case "deno":
+			// Deno < 2.7.5 not supported
+			// @ts-expect-error - Deno global not in types
+			return versionAtLeast(Deno.version?.deno, "2.7.5");
+
 		case "bun":
-			// via node:http2
-			// NOTE: bun's http2 support appears to be buggy, re: https://github.com/s2-streamstore/s2-sdk-typescript/issues/113
-			// so we disable http2 for now
-			return false;
+			// Bun < 1.3.11 never sends connection-level WINDOW_UPDATE frames, so
+			// HTTP/2 reads stall at 64 KiB (issue #113, fixed by oven-sh/bun#26917).
+			return Bun.semver.satisfies(Bun.version, ">=1.3.11");
 
 		case "browser":
 		case "workerd":
@@ -72,19 +75,31 @@ export function supportsHttp2(): boolean {
 	}
 }
 
+function versionAtLeast(version: string | undefined, minimum: string): boolean {
+	if (!version) return false;
+	const [core, prerelease] = version.split("-");
+	const actual = core?.split(".").map(Number) ?? [];
+	const wanted = minimum.split(".").map(Number);
+	for (let i = 0; i < wanted.length; i++) {
+		const a = actual[i] ?? 0;
+		const b = wanted[i] ?? 0;
+		if (Number.isNaN(a)) return false;
+		if (a !== b) return a > b;
+	}
+	// A prerelease (e.g. 2.7.5-rc.1) precedes its stable release.
+	return prerelease === undefined;
+}
+
 /**
  * Check if the current runtime allows setting a custom User-Agent header.
+ *
+ * Only browsers enforce the Fetch spec's "forbidden header name" restriction
+ * that prevents setting User-Agent. All server-side runtimes (Node, Bun,
+ * Deno, Cloudflare Workers, etc.) allow it.
  */
-export function canSetUserAgentHeader(): boolean {
-	const runtime = detectRuntime();
-
-	switch (runtime) {
-		case "node":
-		case "bun":
-			return true;
-		default:
-			return false;
-	}
+export function canSetUserAgentHeader(runtime?: Runtime): boolean {
+	const rt = runtime ?? detectRuntime();
+	return rt !== "browser";
 }
 
 /**

@@ -25,13 +25,16 @@ import {
 	AppendSession,
 	BatchSubmitTicket,
 	ReadSession,
+	S2Error,
 } from "@s2-dev/streamstore";
 import { nanoid } from "nanoid";
 import { chunkBytes, MAX_CHUNK_BODY_BYTES } from "./chunking.js";
 import { DedupeFilter, injectDedupeHeaders } from "./dedupe.js";
 import {
 	CompletedFrame,
+	DEFAULT_MAX_FRAME_BYTES,
 	FrameAssembler,
+	FrameSizeError,
 	frameChunksToRecords,
 } from "./framing.js";
 
@@ -39,6 +42,12 @@ export interface SerializingAppendSessionOptions {
 	chunkSize?: number;
 	matchSeqNum?: number;
 	dedupeSeq?: number;
+	/**
+	 * Max serialized message size to append. Larger messages throw
+	 * {@link FrameSizeError}, since readers reject frames above their own
+	 * limit. Defaults to {@link DEFAULT_MAX_FRAME_BYTES} (100 MiB).
+	 */
+	maxFrameBytes?: number;
 }
 
 type MessageRange = {
@@ -51,6 +60,7 @@ export class SerializingAppendSession<Message> extends WritableStream<Message> {
 	private readonly session: AppendSession;
 	private readonly serializer: (message: Message) => Uint8Array;
 	private readonly chunkSize: number;
+	private readonly maxFrameBytes: number;
 
 	private matchSeqNum?: number;
 	private dedupeSeq?: number;
@@ -76,12 +86,11 @@ export class SerializingAppendSession<Message> extends WritableStream<Message> {
 				if (self.matchSeqNum !== undefined) {
 					const current = self.matchSeqNum;
 					self.matchSeqNum = current + records.length;
-					await writer.write({
-						records,
-						matchSeqNum: current,
-					});
+					await writer.write(
+						AppendInput.create(records, { matchSeqNum: current }),
+					);
 				} else {
-					await writer.write({ records });
+					await writer.write(AppendInput.create(records));
 				}
 			},
 			close: async () => {
@@ -104,6 +113,7 @@ export class SerializingAppendSession<Message> extends WritableStream<Message> {
 		this.session = session;
 		this.serializer = serializer;
 		this.chunkSize = options?.chunkSize ?? MAX_CHUNK_BODY_BYTES;
+		this.maxFrameBytes = options?.maxFrameBytes ?? DEFAULT_MAX_FRAME_BYTES;
 		this.matchSeqNum = options?.matchSeqNum;
 		this.dedupeSeq = options?.dedupeSeq;
 		this.writerId = nanoid(12);
@@ -118,6 +128,18 @@ export class SerializingAppendSession<Message> extends WritableStream<Message> {
 
 	private toRecords(message: Message): AppendRecord[] {
 		const serialized = this.serializer(message);
+		if (serialized.byteLength === 0) {
+			throw new S2Error({
+				message:
+					"Serialized message is empty; the serializer must produce at least one byte",
+				origin: "sdk",
+			});
+		}
+		if (serialized.byteLength > this.maxFrameBytes) {
+			throw new FrameSizeError(
+				`Serialized message is ${serialized.byteLength} bytes, exceeding maxFrameBytes (${this.maxFrameBytes}); readers would reject it. Raise maxFrameBytes on both sessions to allow larger messages`,
+			);
+		}
 		const chunks = chunkBytes(serialized, this.chunkSize);
 		const records = frameChunksToRecords(chunks);
 
@@ -160,6 +182,12 @@ export class SerializingAppendSession<Message> extends WritableStream<Message> {
 
 export interface DeserializingReadSessionOptions {
 	enableDedupe?: boolean;
+	/**
+	 * Max declared frame size to allocate. Frames exceeding this error the
+	 * stream with {@link FrameSizeError}. Defaults to
+	 * {@link DEFAULT_MAX_FRAME_BYTES} (100 MiB).
+	 */
+	maxFrameBytes?: number;
 }
 
 export class DeserializingReadSession<Message> extends ReadableStream<Message> {
@@ -171,33 +199,41 @@ export class DeserializingReadSession<Message> extends ReadableStream<Message> {
 		super({
 			start: async (controller) => {
 				const reader = session.getReader();
-				const assembler = new FrameAssembler();
+				const assembler = new FrameAssembler({
+					maxFrameBytes: options?.maxFrameBytes,
+				});
 				const dedupe = new DedupeFilter();
 
-				while (true) {
-					const { done, value: record } = await reader.read();
-					if (done) {
-						reader.releaseLock();
-						controller.close();
-						return;
-					}
+				try {
+					while (true) {
+						const { done, value: record } = await reader.read();
+						if (done) {
+							reader.releaseLock();
+							controller.close();
+							return;
+						}
 
-					if (
-						options?.enableDedupe !== false &&
-						!dedupe.shouldAccept(record!.headers as any)
-					) {
-						continue;
-					}
+						if (
+							options?.enableDedupe !== false &&
+							!dedupe.shouldAccept(record!.headers as any)
+						) {
+							continue;
+						}
 
-					const frames: CompletedFrame[] = assembler.push({
-						headers: (record!.headers ?? []) as any,
-						body: record!.body ?? undefined,
-					});
+						const frames: CompletedFrame[] = assembler.push({
+							headers: (record!.headers ?? []) as any,
+							body: record!.body ?? undefined,
+						});
 
-					for (const frame of frames) {
-						const message = deserialize(frame.payload);
-						controller.enqueue(message);
+						for (const frame of frames) {
+							const message = deserialize(frame.payload);
+							controller.enqueue(message);
+						}
 					}
+				} catch (e) {
+					controller.error(e);
+					reader.releaseLock();
+					await session.cancel(e);
 				}
 			},
 			cancel: async () => {
@@ -232,8 +268,11 @@ export {
 } from "./dedupe.js";
 export {
 	type CompletedFrame,
+	DEFAULT_MAX_FRAME_BYTES,
 	FrameAssembler,
+	type FrameAssemblerOptions,
 	type FrameMeta,
+	FrameSizeError,
 	frameChunksToRecords,
 } from "./framing.js";
 export { decodeU64, encodeU64 } from "./u64.js";

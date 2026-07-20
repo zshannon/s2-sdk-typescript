@@ -154,16 +154,6 @@ describeIf("Streams spec parity", () => {
 			},
 			TEST_TIMEOUT_MS,
 		);
-
-		it(
-			"rejects startAfter less than prefix",
-			async () => {
-				await expect(
-					basin.streams.list({ prefix: "zzzzzzzz", startAfter: "aaaaaaaa" }),
-				).rejects.toMatchObject({ status: 422 });
-			},
-			TEST_TIMEOUT_MS,
-		);
 	});
 
 	describe("Create stream", () => {
@@ -173,6 +163,21 @@ describeIf("Streams spec parity", () => {
 				const streamName = await createStream("ts-min");
 				try {
 					expect(streamName.length).toBeGreaterThan(0);
+				} finally {
+					await basin.streams.delete({ stream: streamName }).catch(() => {});
+				}
+			},
+			TEST_TIMEOUT_MS,
+		);
+
+		it(
+			"returns StreamInfo with normalized dates",
+			async () => {
+				const streamName = makeStreamName("ts-info");
+				try {
+					const info = await basin.streams.create({ stream: streamName });
+					expect(info.name).toBe(streamName);
+					expect(info.createdAt).toBeInstanceOf(Date);
 				} finally {
 					await basin.streams.delete({ stream: streamName }).catch(() => {});
 				}

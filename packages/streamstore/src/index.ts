@@ -33,6 +33,7 @@ export {
 
 export { S2AccessTokens } from "./accessTokens.js";
 export { S2Basins } from "./basins.js";
+export { S2Locations } from "./locations.js";
 export { S2Metrics } from "./metrics.js";
 export { S2Streams } from "./streams.js";
 
@@ -72,8 +73,15 @@ export type {
 	DeleteBasinInput,
 	DeleteOnEmptyConfig,
 	DeleteStreamInput,
+	EncryptionAlgorithm,
+	EncryptionKeyInput,
+	EnsureBasinInput,
+	EnsureBasinResponse,
+	EnsureStreamInput,
+	EnsureStreamResponse,
 	GaugeMetric,
 	GetBasinConfigInput,
+	GetDefaultLocationResponse,
 	GetStreamConfigInput,
 	IssueAccessTokenInput,
 	IssueAccessTokenResponse,
@@ -85,10 +93,13 @@ export type {
 	ListAllStreamsInput,
 	ListBasinsInput,
 	ListBasinsResponse,
+	ListLocationsResponse,
 	ListStreamsInput,
 	ListStreamsResponse,
+	LocationInfo,
 	Metric,
 	MetricSetResponse,
+	ProvisionResult,
 	ReadBatch,
 	ReadFrom,
 	ReadInput,
@@ -103,6 +114,8 @@ export type {
 	RetentionPolicy,
 	RevokeAccessTokenInput,
 	ScalarMetric,
+	SetDefaultLocationInput,
+	SetDefaultLocationResponse,
 	StreamConfig,
 	StreamInfo,
 	StreamMetricsInput,
@@ -120,6 +133,8 @@ export type {
 export {
 	AppendInput,
 	AppendRecord,
+	EncryptionKey,
+	EncryptionKeyLengthError,
 	MAX_APPEND_BYTES,
 	MAX_APPEND_RECORDS,
 } from "./types.js";
@@ -134,10 +149,10 @@ export type {
 	AccountMetricSet,
 	BasinMetricSet,
 	// Enums and string literals
-	BasinScope,
 	BasinState,
 	// Retention
 	InfiniteRetention,
+	LocationName,
 	Operation,
 	// Scope configuration
 	PermittedOperationGroups,
@@ -162,6 +177,7 @@ export type {
 	AppendRetryPolicy,
 	RetryConfig,
 	S2ClientOptions,
+	S2Compression,
 	S2RequestOptions,
 } from "./common.js";
 export type { S2EndpointsInit } from "./endpoints.js";
@@ -187,12 +203,13 @@ export type {
 	AcksStream,
 	AppendHeaders,
 	AppendSession,
-	BatchSubmitTicket,
+	Http2Settings,
 	ReadHeaders,
 	ReadSession,
 	SessionTransports,
 	TransportConfig,
 } from "./lib/stream/types.js";
+export { BatchSubmitTicket } from "./lib/stream/types.js";
 
 // =============================================================================
 // Utilities

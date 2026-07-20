@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, Options as Options2, TDataShape } from './client/index.js';
-import type { AccountMetricsData, AccountMetricsErrors, AccountMetricsResponses, AppendData, AppendErrors, AppendResponses, BasinMetricsData, BasinMetricsErrors, BasinMetricsResponses, CheckTailData, CheckTailErrors, CheckTailResponses, CreateBasinData, CreateBasinErrors, CreateBasinResponses, CreateOrReconfigureBasinData, CreateOrReconfigureBasinErrors, CreateOrReconfigureBasinResponses, CreateOrReconfigureStreamData, CreateOrReconfigureStreamErrors, CreateOrReconfigureStreamResponses, CreateStreamData, CreateStreamErrors, CreateStreamResponses, DeleteBasinData, DeleteBasinErrors, DeleteBasinResponses, DeleteStreamData, DeleteStreamErrors, DeleteStreamResponses, GetBasinConfigData, GetBasinConfigErrors, GetBasinConfigResponses, GetStreamConfigData, GetStreamConfigErrors, GetStreamConfigResponses, IssueAccessTokenData, IssueAccessTokenErrors, IssueAccessTokenResponses, ListAccessTokensData, ListAccessTokensErrors, ListAccessTokensResponses, ListBasinsData, ListBasinsErrors, ListBasinsResponses, ListStreamsData, ListStreamsErrors, ListStreamsResponses, ReadData, ReadErrors, ReadResponses, ReconfigureBasinData, ReconfigureBasinErrors, ReconfigureBasinResponses, ReconfigureStreamData, ReconfigureStreamErrors, ReconfigureStreamResponses, RevokeAccessTokenData, RevokeAccessTokenErrors, RevokeAccessTokenResponses, StreamMetricsData, StreamMetricsErrors, StreamMetricsResponses } from './types.gen.js';
+import type { AccountMetricsData, AccountMetricsErrors, AccountMetricsResponses, AppendData, AppendErrors, AppendResponses, BasinMetricsData, BasinMetricsErrors, BasinMetricsResponses, CheckTailData, CheckTailErrors, CheckTailResponses, CreateBasinData, CreateBasinErrors, CreateBasinResponses, CreateStreamData, CreateStreamErrors, CreateStreamResponses, DeleteBasinData, DeleteBasinErrors, DeleteBasinResponses, DeleteStreamData, DeleteStreamErrors, DeleteStreamResponses, EnsureBasinData, EnsureBasinErrors, EnsureBasinResponses, EnsureStreamData, EnsureStreamErrors, EnsureStreamResponses, GetBasinConfigData, GetBasinConfigErrors, GetBasinConfigResponses, GetDefaultLocationData, GetDefaultLocationErrors, GetDefaultLocationResponses, GetStreamConfigData, GetStreamConfigErrors, GetStreamConfigResponses, IssueAccessTokenData, IssueAccessTokenErrors, IssueAccessTokenResponses, ListAccessTokensData, ListAccessTokensErrors, ListAccessTokensResponses, ListBasinsData, ListBasinsErrors, ListBasinsResponses, ListLocationsData, ListLocationsErrors, ListLocationsResponses, ListStreamsData, ListStreamsErrors, ListStreamsResponses, ReadData, ReadErrors, ReadResponses, ReconfigureBasinData, ReconfigureBasinErrors, ReconfigureBasinResponses, ReconfigureStreamData, ReconfigureStreamErrors, ReconfigureStreamResponses, RevokeAccessTokenData, RevokeAccessTokenErrors, RevokeAccessTokenResponses, SetDefaultLocationData, SetDefaultLocationErrors, SetDefaultLocationResponses, StreamMetricsData, StreamMetricsErrors, StreamMetricsResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -159,10 +159,10 @@ export const reconfigureBasin = <ThrowOnError extends boolean = false>(options: 
 };
 
 /**
- * Create or reconfigure a basin.
+ * Ensure a basin.
  */
-export const createOrReconfigureBasin = <ThrowOnError extends boolean = false>(options: Options<CreateOrReconfigureBasinData, ThrowOnError>) => {
-    return (options.client ?? client).put<CreateOrReconfigureBasinResponses, CreateOrReconfigureBasinErrors, ThrowOnError>({
+export const ensureBasin = <ThrowOnError extends boolean = false>(options: Options<EnsureBasinData, ThrowOnError>) => {
+    return (options.client ?? client).put<EnsureBasinResponses, EnsureBasinErrors, ThrowOnError>({
         security: [
             {
                 scheme: 'bearer',
@@ -170,6 +170,58 @@ export const createOrReconfigureBasin = <ThrowOnError extends boolean = false>(o
             }
         ],
         url: '/basins/{basin}',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+};
+
+/**
+ * List locations.
+ */
+export const listLocations = <ThrowOnError extends boolean = false>(options?: Options<ListLocationsData, ThrowOnError>) => {
+    return (options?.client ?? client).get<ListLocationsResponses, ListLocationsErrors, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
+        url: '/locations',
+        ...options
+    });
+};
+
+/**
+ * Get the default location.
+ */
+export const getDefaultLocation = <ThrowOnError extends boolean = false>(options?: Options<GetDefaultLocationData, ThrowOnError>) => {
+    return (options?.client ?? client).get<GetDefaultLocationResponses, GetDefaultLocationErrors, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
+        url: '/locations/default',
+        ...options
+    });
+};
+
+/**
+ * Set the default location.
+ */
+export const setDefaultLocation = <ThrowOnError extends boolean = false>(options: Options<SetDefaultLocationData, ThrowOnError>) => {
+    return (options.client ?? client).put<SetDefaultLocationResponses, SetDefaultLocationErrors, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
+        url: '/locations/default',
         ...options,
         headers: {
             'Content-Type': 'application/json',
@@ -315,10 +367,10 @@ export const reconfigureStream = <ThrowOnError extends boolean = false>(options:
 };
 
 /**
- * Create or reconfigure a stream.
+ * Ensure a stream.
  */
-export const createOrReconfigureStream = <ThrowOnError extends boolean = false>(options: Options<CreateOrReconfigureStreamData, ThrowOnError>) => {
-    return (options.client ?? client).put<CreateOrReconfigureStreamResponses, CreateOrReconfigureStreamErrors, ThrowOnError>({
+export const ensureStream = <ThrowOnError extends boolean = false>(options: Options<EnsureStreamData, ThrowOnError>) => {
+    return (options.client ?? client).put<EnsureStreamResponses, EnsureStreamErrors, ThrowOnError>({
         security: [
             {
                 scheme: 'bearer',

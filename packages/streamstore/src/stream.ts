@@ -8,6 +8,12 @@ import {
 	fromAPITailResponse,
 	toAPIReadQuery,
 } from "./internal/mappers.js";
+import {
+	type EncryptionKeyInput,
+	resolveEncryptionKey,
+	S2_ENCRYPTION_KEY_HEADER,
+} from "./lib/encryption.js";
+import * as Redacted from "./lib/redacted.js";
 import { withRetries } from "./lib/retry.js";
 import { createSessionTransport } from "./lib/stream/factory.js";
 import {
@@ -24,6 +30,10 @@ import type {
 import type * as Types from "./types.js";
 import { isCommandRecord } from "./utils.js";
 
+type RequestOptionsWithHeaders = S2RequestOptions & {
+	headers?: Record<string, string>;
+};
+
 /**
  * Basin-scoped stream helper for append/read operations.
  *
@@ -33,7 +43,7 @@ export class S2Stream {
 	private readonly client: Client;
 	private readonly transportConfig: TransportConfig;
 	private readonly retryConfig?: RetryConfig;
-	private _transport?: SessionTransport;
+	private _transportPromise?: Promise<SessionTransport>;
 	private closed = false;
 	private closePromise?: Promise<void>;
 
@@ -56,16 +66,54 @@ export class S2Stream {
 	 */
 	private async getTransport(): Promise<SessionTransport> {
 		this.ensureOpen();
-		if (!this._transport) {
-			this._transport = await createSessionTransport(this.transportConfig);
+		if (!this._transportPromise) {
+			this._transportPromise = createSessionTransport(
+				this.transportConfig,
+			).catch((err) => {
+				this._transportPromise = undefined;
+				throw err;
+			});
 		}
-		return this._transport;
+		return this._transportPromise;
 	}
 
 	private ensureOpen(): void {
 		if (this.closed) {
 			throw new S2Error({ message: "S2Stream is closed" });
 		}
+	}
+
+	private withEncryptionHeaders(
+		options?: S2RequestOptions,
+	): RequestOptionsWithHeaders | undefined {
+		const encryptionKey = this.transportConfig.encryptionKey;
+		if (!encryptionKey) {
+			return options;
+		}
+
+		const requestOptions = (options ?? {}) as RequestOptionsWithHeaders;
+		return {
+			...requestOptions,
+			headers: {
+				...(requestOptions.headers ?? {}),
+				[S2_ENCRYPTION_KEY_HEADER]: Redacted.value(encryptionKey),
+			},
+		};
+	}
+
+	/**
+	 * Return a new stream handle that sends the supplied encryption key on append/read requests.
+	 */
+	public withEncryptionKey(encryptionKey: EncryptionKeyInput): S2Stream {
+		return new S2Stream(
+			this.name,
+			this.client,
+			{
+				...this.transportConfig,
+				encryptionKey: resolveEncryptionKey(encryptionKey),
+			},
+			this.retryConfig,
+		);
 	}
 
 	/**
@@ -97,7 +145,9 @@ export class S2Stream {
 	 * - When `as: "bytes"` is provided, bodies and headers are decoded from base64 to `Uint8Array`.
 	 * - Supports starting position by `seq_num`, `timestamp`, or `tail_offset` and can clamp to the tail.
 	 * - Non-streaming reads are bounded by `count` and `bytes` (defaults 1000 and 1 MiB).
-	 * - Use `readSession` for streaming reads
+	 * - When `ignoreCommandRecords` is set, command records are filtered from the single
+	 *   returned batch, which may then be empty. Use `readSession` to keep reading until
+	 *   data records are found.
 	 */
 	public async read<Format extends "string" | "bytes" = "string">(
 		input?: Types.ReadInput,
@@ -110,12 +160,13 @@ export class S2Stream {
 			const readArgs: ReadArgs<Format> = {
 				...toAPIReadQuery(input),
 				as,
+				ignore_command_records: input?.ignoreCommandRecords,
 			} as ReadArgs<Format>;
 			const genBatch = await streamRead(
 				this.name,
 				this.client,
 				readArgs,
-				requestOptions,
+				this.withEncryptionHeaders(requestOptions),
 			);
 			// Convert from API to SDK ReadBatch
 			const batch = (
@@ -123,22 +174,21 @@ export class S2Stream {
 					? fromAPIReadBatchBytes(genBatch)
 					: fromAPIReadBatchString(genBatch)
 			) as Types.ReadBatch<Format>;
-			if (input?.ignoreCommandRecords) {
-				return {
-					...batch,
-					records: batch.records.filter((r) => !isCommandRecord(r)),
-				};
+			if (!input?.ignoreCommandRecords) {
+				return batch;
 			}
-			return batch;
+			return {
+				...batch,
+				records: batch.records.filter((r) => !isCommandRecord(r)),
+			};
 		});
 	}
 	/**
 	 * Append a batch of records to the stream.
 	 *
-	 * - Automatically base64-encodes when format is "bytes".
 	 * - Supports conditional appends via `fencingToken` and `matchSeqNum` in the input.
 	 * - Returns the acknowledged range and the stream tail after the append.
-	 * - All records in a batch must use the same format (either all string or all bytes).
+	 * - A batch may contain both string and bytes records.
 	 *
 	 * Use {@link AppendInput.create} to construct a validated AppendInput.
 	 * For high-throughput sequential appends, use `appendSession()` instead.
@@ -154,16 +204,18 @@ export class S2Stream {
 		return await withRetries(
 			this.retryConfig,
 			async () => {
-				return await streamAppend(this.name, this.client, input, options);
+				return await streamAppend(
+					this.name,
+					this.client,
+					input,
+					this.withEncryptionHeaders(options),
+				);
 			},
 			(config, error) => {
 				if ((config.appendRetryPolicy ?? "all") === "noSideEffects") {
-					// Allow retry only when the append is naturally idempotent by containing
-					// a match_seq_num condition.
-					return input.matchSeqNum !== undefined;
-				} else {
-					return true;
+					return error.hasNoSideEffects();
 				}
+				return true;
 			},
 		);
 	}
@@ -180,6 +232,7 @@ export class S2Stream {
 		this.ensureOpen();
 		const { as, ...requestOptions } = options ?? {};
 		const transport = await this.getTransport();
+		this.ensureOpen(); // Re-check after async gap
 		// Convert ReadInput to ReadArgs using mapper
 		const readArgs: ReadArgs<Format> = {
 			...toAPIReadQuery(input),
@@ -203,6 +256,7 @@ export class S2Stream {
 	): Promise<AppendSession> {
 		this.ensureOpen();
 		const transport = await this.getTransport();
+		this.ensureOpen(); // Re-check after async gap
 		return await transport.makeAppendSession(
 			this.name,
 			sessionOptions,
@@ -219,11 +273,12 @@ export class S2Stream {
 				return;
 			}
 			this.closed = true;
-			if (this._transport) {
+			if (this._transportPromise) {
 				try {
-					await this._transport.close();
+					const transport = await this._transportPromise;
+					await transport.close();
 				} finally {
-					this._transport = undefined;
+					this._transportPromise = undefined;
 				}
 			}
 		})();

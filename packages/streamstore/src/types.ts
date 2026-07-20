@@ -10,11 +10,18 @@
 
 import { S2Error } from "./error.js";
 import type * as API from "./generated/types.gen.js";
+import type { EncryptionAlgorithm } from "./lib/encryption.js";
 import type { ListAllArgs } from "./lib/paginate.js";
 import {
 	meteredBytes as calculateMeteredBytes,
 	utf8ByteLength,
 } from "./utils.js";
+
+export type {
+	EncryptionAlgorithm,
+	EncryptionKeyInput,
+} from "./lib/encryption.js";
+export { EncryptionKey, EncryptionKeyLengthError } from "./lib/encryption.js";
 
 // =============================================================================
 // Stream Position
@@ -95,16 +102,26 @@ export namespace AppendRecord {
 
 	/**
 	 * Create a bytes-format append record with pre-calculated metered size.
+	 * String header names and values are encoded as UTF-8.
 	 */
 	export function bytes(params: {
 		readonly body: Uint8Array;
-		readonly headers?: ReadonlyArray<readonly [Uint8Array, Uint8Array]>;
+		readonly headers?: ReadonlyArray<
+			readonly [string | Uint8Array, string | Uint8Array]
+		>;
 		readonly timestamp?: number | Date;
 	}): BytesAppendRecord {
+		const headers = params.headers?.map(
+			([name, value]) =>
+				[
+					typeof name === "string" ? textEncoder.encode(name) : name,
+					typeof value === "string" ? textEncoder.encode(value) : value,
+				] as const,
+		);
 		// Create record with placeholder, then calculate actual size
 		const record: BytesAppendRecord = {
 			body: params.body,
-			headers: params.headers,
+			headers,
 			timestamp: params.timestamp,
 			meteredBytes: 0,
 		};
@@ -116,11 +133,20 @@ export namespace AppendRecord {
 
 	/**
 	 * Create a fence command record.
+	 * String-format, but can be batched freely alongside bytes records.
 	 */
 	export function fence(
 		fencingToken: string,
 		timestamp?: number | Date,
 	): StringAppendRecord {
+		const tokenBytes = utf8ByteLength(fencingToken);
+		if (tokenBytes > 36) {
+			throw new S2Error({
+				message: "fencing token must not exceed 36 bytes in length",
+				origin: "sdk",
+				status: 422,
+			});
+		}
 		return string({
 			body: fencingToken,
 			headers: [["", "fence"]],
@@ -130,20 +156,42 @@ export namespace AppendRecord {
 
 	/**
 	 * Create a trim command record.
+	 * Bytes-format, but can be batched freely alongside string records.
 	 */
 	export function trim(
 		seqNum: number,
 		timestamp?: number | Date,
 	): BytesAppendRecord {
+		if (!Number.isSafeInteger(seqNum) || seqNum < 0) {
+			throw new S2Error({
+				message: "seqNum must be a non-negative safe integer",
+				origin: "sdk",
+			});
+		}
 		const buffer = new Uint8Array(8);
 		const view = new DataView(buffer.buffer);
 		view.setBigUint64(0, BigInt(seqNum), false);
 
 		return bytes({
 			body: buffer,
-			headers: [[textEncoder.encode(""), textEncoder.encode("trim")]],
+			headers: [["", "trim"]],
 			timestamp,
 		});
+	}
+
+	/**
+	 * Maximum body size in bytes for a record with the given headers, such that
+	 * a batch containing only that record stays within {@link MAX_APPEND_BYTES}.
+	 *
+	 * When batching multiple records, the limit applies to the sum of their
+	 * metered sizes, so the available body size shrinks accordingly.
+	 */
+	export function maxBodyBytes(
+		headers?: ReadonlyArray<
+			readonly [string | Uint8Array, string | Uint8Array]
+		>,
+	): number {
+		return Math.max(0, MAX_APPEND_BYTES - calculateMeteredBytes({ headers }));
 	}
 }
 
@@ -193,6 +241,7 @@ export interface AppendInput {
 export namespace AppendInput {
 	/**
 	 * Create an AppendInput with validation.
+	 * A batch may contain both string and bytes records.
 	 *
 	 * @throws {S2Error} If validation fails (empty, too many records, or too large)
 	 */
@@ -236,12 +285,19 @@ export namespace AppendInput {
 			}
 		}
 
+		if (
+			options?.matchSeqNum !== undefined &&
+			(!Number.isSafeInteger(options.matchSeqNum) || options.matchSeqNum < 0)
+		) {
+			throw new S2Error({
+				message: "matchSeqNum must be a non-negative safe integer",
+				origin: "sdk",
+			});
+		}
+
 		return {
 			records,
-			matchSeqNum:
-				options?.matchSeqNum === undefined
-					? undefined
-					: Math.floor(options.matchSeqNum),
+			matchSeqNum: options?.matchSeqNum,
 			fencingToken: options?.fencingToken,
 			meteredBytes: totalBytes,
 		};
@@ -366,6 +422,11 @@ export interface ListStreamsInput {
 export type ListAllStreamsInput = ListAllArgs<ListStreamsInput>;
 
 /**
+ * Result of provisioning a resource.
+ */
+export type ProvisionResult = "created" | "updated" | "noop";
+
+/**
  * Input for creating a stream.
  */
 export interface CreateStreamInput {
@@ -392,6 +453,22 @@ export interface GetStreamConfigInput {
 export interface DeleteStreamInput {
 	/** Stream name. */
 	stream: string;
+}
+
+/**
+ * Input for ensuring a stream.
+ */
+export interface EnsureStreamInput {
+	/** Stream name. */
+	stream: string;
+	/**
+	 * Desired stream configuration before basin defaults are applied.
+	 *
+	 * Missing fields are filled from the current basin default stream configuration and then
+	 * global defaults before comparing or writing. If omitted, the stream is ensured using those
+	 * defaults.
+	 */
+	config?: StreamConfig | null;
 }
 
 /**
@@ -422,6 +499,8 @@ export interface StreamInfo {
 	createdAt: Date;
 	/** Deletion time, if the stream is being deleted. */
 	deletedAt?: Date | null;
+	/** Encryption algorithm for this stream, if encryption is enabled. */
+	cipher?: EncryptionAlgorithm | null;
 }
 
 /**
@@ -490,12 +569,58 @@ export interface ListStreamsResponse {
 /**
  * Response from creating a stream.
  */
-export interface CreateStreamResponse {
-	/** Stream configuration. */
-	config: StreamConfig;
+export type CreateStreamResponse = StreamInfo;
+
+/**
+ * Response from ensuring a stream.
+ */
+export interface EnsureStreamResponse {
+	/**
+	 * Provisioning outcome.
+	 */
+	result: ProvisionResult;
+	/** Current stream state. */
+	stream: StreamInfo;
 }
 
 export type ReconfigureStreamResponse = StreamConfig;
+
+// =============================================================================
+// Location Types
+// =============================================================================
+
+/**
+ * Information about a location.
+ */
+export interface LocationInfo {
+	/** Location name. */
+	name: API.LocationName;
+	/** Whether the location represents a private placement limited by account. */
+	isPrivate: boolean;
+}
+
+/**
+ * Response from listing locations.
+ */
+export type ListLocationsResponse = LocationInfo[];
+
+/**
+ * Response from getting the default location.
+ */
+export type GetDefaultLocationResponse = LocationInfo;
+
+/**
+ * Input for setting the default location.
+ */
+export interface SetDefaultLocationInput {
+	/** Location name. */
+	location: API.LocationName;
+}
+
+/**
+ * Response from setting the default location.
+ */
+export type SetDefaultLocationResponse = LocationInfo;
 
 // =============================================================================
 // Basin Types
@@ -529,8 +654,8 @@ export interface CreateBasinInput {
 	basin: string;
 	/** Basin configuration. */
 	config?: BasinConfig | null;
-	/** Basin scope. */
-	scope?: API.BasinScope | null;
+	/** Basin location. */
+	location?: API.LocationName | null;
 }
 
 /**
@@ -550,6 +675,26 @@ export interface DeleteBasinInput {
 }
 
 /**
+ * Input for ensuring a basin.
+ */
+export interface EnsureBasinInput {
+	/** Basin name. */
+	basin: string;
+	/**
+	 * Desired configuration for the basin.
+	 *
+	 * If omitted, the basin is ensured with the default configuration.
+	 */
+	config?: BasinConfig | null;
+	/**
+	 * Basin location.
+	 *
+	 * If omitted when creating, uses the default location for the service. Cannot be changed once set.
+	 */
+	location?: API.LocationName | null;
+}
+
+/**
  * Input for reconfiguring a basin.
  */
 export interface ReconfigureBasinInput {
@@ -561,6 +706,8 @@ export interface ReconfigureBasinInput {
 	createStreamOnRead?: boolean | null;
 	/** Default stream configuration updates. */
 	defaultStreamConfig?: StreamConfig | null;
+	/** Encryption algorithm to apply to newly created streams in this basin. */
+	streamCipher?: EncryptionAlgorithm | null;
 }
 
 // Basin response types (explicit interfaces for documentation)
@@ -571,10 +718,12 @@ export interface ReconfigureBasinInput {
 export interface BasinInfo {
 	/** Basin name. */
 	name: string;
-	/** Basin scope. */
-	scope?: API.BasinScope | null;
-	/** Basin state. */
-	state: API.BasinState;
+	/** Basin location. */
+	location?: API.LocationName | null;
+	/** Creation time. */
+	createdAt: Date;
+	/** Deletion time if the basin is being deleted. */
+	deletedAt?: Date | null;
 }
 
 /**
@@ -587,6 +736,8 @@ export interface BasinConfig {
 	createStreamOnRead?: boolean;
 	/** Default stream configuration. */
 	defaultStreamConfig?: StreamConfig | null;
+	/** Encryption algorithm to apply to newly created streams in this basin. */
+	streamCipher?: EncryptionAlgorithm | null;
 }
 
 /**
@@ -602,13 +753,18 @@ export interface ListBasinsResponse {
 /**
  * Response from creating a basin.
  */
-export interface CreateBasinResponse {
-	/** Basin name. */
-	name: string;
-	/** Basin scope. */
-	scope?: API.BasinScope | null;
-	/** Basin state. */
-	state: API.BasinState;
+export type CreateBasinResponse = BasinInfo;
+
+/**
+ * Response from ensuring a basin.
+ */
+export interface EnsureBasinResponse {
+	/**
+	 * Provisioning outcome.
+	 */
+	result: ProvisionResult;
+	/** Current basin info. */
+	basin: BasinInfo;
 }
 
 export type ReconfigureBasinResponse = BasinConfig;
@@ -700,7 +856,7 @@ export interface AccessTokenInfo {
 	/** Access token scope. */
 	scope: AccessTokenScope;
 	/** Whether streams are auto-prefixed. */
-	autoPrefixStreams?: boolean;
+	autoPrefixStreams: boolean;
 	/** Expiration time. */
 	expiresAt?: Date | null;
 }
