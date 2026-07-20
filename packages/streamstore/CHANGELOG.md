@@ -1,5 +1,13 @@
 # @s2-dev/streamstore
 
+## 0.24.4
+
+### Patch Changes
+
+- ef1f949: - Test suite: allow correctness test reads to outlive prolonged append outages and cleanly cancelling concurrent work on failure
+  - Normalize undici network failures so interrupted requests and response streams participate in SDK retry handling
+- cccc323: Replace @biscuit-auth/biscuit-wasm with native TypeScript Biscuit token creation using @bufbuild/protobuf + @noble/curves. No WASM dependency, synchronous token creation.
+
 ## 0.24.3
 
 ### Patch Changes
