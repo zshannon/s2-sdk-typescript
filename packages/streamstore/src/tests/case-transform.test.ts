@@ -190,19 +190,27 @@ describe("case-transform", () => {
 			type Info = SDK.StreamInfo;
 
 			const info: Info = {
+				cipher: "aegis-256",
 				name: "my-stream",
 				createdAt: "2024-01-01T00:00:00Z",
 				deletedAt: null,
 			};
 
 			expect(info.createdAt).toBe("2024-01-01T00:00:00Z");
+			expect(info.cipher).toBe("aegis-256");
 		});
 
 		it("transforms ListBasinsResponse keys to camelCase", () => {
 			type Response = SDK.ListBasinsResponse;
 
 			const response: Response = {
-				basins: [{ name: "my-basin", scope: "aws:us-east-1", state: "active" }],
+				basins: [
+					{
+						name: "my-basin",
+						location: "aws:us-east-1",
+						createdAt: "2024-01-01T00:00:00Z",
+					},
+				],
 				hasMore: false,
 			};
 

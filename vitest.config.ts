@@ -12,10 +12,20 @@ export default defineConfig(({ mode }) => ({
         __dirname,
         'packages/streamstore/src/index.ts',
       ),
+      '@s2-dev/resumable-stream': resolve(
+        __dirname,
+        'packages/resumable-stream/src/index.ts',
+      ),
+      '@s2-dev/resumable-stream/aisdk': resolve(
+        __dirname,
+        'packages/resumable-stream/src/aisdk/index.ts',
+      ),
     },
   },
   test: {
     env: loadEnv(mode, process.cwd(), ''),
+    // Deno tests use `deno test` directly — exclude from vitest
+    exclude: ['**/deno.e2e.test.ts', '**/node_modules/**'],
     // Run e2e tests in a separate pool with limited concurrency
     poolMatchGlobs: [['**/*.e2e.test.ts', 'forks']],
     poolOptions: {

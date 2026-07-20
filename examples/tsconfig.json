@@ -15,8 +15,25 @@
 			"@s2-dev/streamstore": ["packages/streamstore/src/index.ts"],
 			"@s2-dev/streamstore/*": ["packages/streamstore/src/*"],
 			"@s2-dev/streamstore-patterns": ["packages/patterns/src/index.ts"],
-			"@s2-dev/streamstore-patterns/*": ["packages/patterns/src/*"]
+			"@s2-dev/streamstore-patterns/*": ["packages/patterns/src/*"],
+			"@s2-dev/resumable-stream": ["packages/resumable-stream/src/index.ts"],
+			"@s2-dev/resumable-stream/aisdk": [
+				"packages/resumable-stream/src/aisdk/index.ts"
+			],
+			"@s2-dev/resumable-stream/tanstack-ai": [
+				"packages/resumable-stream/src/tanstack-ai/index.ts"
+			],
+			"@s2-dev/resumable-stream/tanstack-ai/client": [
+				"packages/resumable-stream/src/tanstack-ai/client.ts"
+			],
+			"@s2-dev/resumable-stream/anthropic": [
+				"packages/resumable-stream/src/anthropic/index.ts"
+			],
+			"@s2-dev/resumable-stream/anthropic/client": [
+				"packages/resumable-stream/src/anthropic/client.ts"
+			]
 		}
 	},
-	"include": ["./**/*.ts"]
+	"include": ["./**/*.ts"],
+	"exclude": ["./local/**", "./tanstack-ai-chat/**"]
 }

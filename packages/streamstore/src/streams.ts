@@ -4,12 +4,17 @@ import type { Client } from "./generated/client/types.gen.js";
 import {
 	createStream,
 	deleteStream,
+	ensureStream,
 	getStreamConfig,
 	listStreams,
 	reconfigureStream,
 } from "./generated/index.js";
 import type * as API from "./generated/types.gen.js";
 import { toCamelCase, toSnakeCase } from "./internal/case-transform.js";
+import {
+	provisionResultFromResponse,
+	withS2DataAndResponse,
+} from "./internal/provisioning.js";
 import { randomToken } from "./lib/base64.js";
 import { filterAsync, paginate } from "./lib/paginate.js";
 import { withRetries } from "./lib/retry.js";
@@ -53,20 +58,26 @@ function toSDKRetentionPolicy(
 	return policy; // { infinite: ... } passes through
 }
 
+/** Normalize deleteOnEmpty.minAgeSecs (floor and clamp to >= 0). */
+function toAPIDeleteOnEmpty(
+	deleteOnEmpty: Types.DeleteOnEmptyConfig | null | undefined,
+): any {
+	if (!deleteOnEmpty) return deleteOnEmpty;
+	return {
+		...deleteOnEmpty,
+		minAgeSecs:
+			deleteOnEmpty.minAgeSecs === undefined
+				? undefined
+				: Math.max(0, Math.floor(deleteOnEmpty.minAgeSecs)),
+	};
+}
+
 /** Convert SDK StreamConfig to API format (handles retentionPolicy.ageSecs → age). */
 function toAPIStreamConfig(config: Types.StreamConfig | null | undefined): any {
 	if (config === null || config === undefined) return config;
 	return {
 		...config,
-		deleteOnEmpty: config.deleteOnEmpty
-			? {
-					...config.deleteOnEmpty,
-					minAgeSecs:
-						config.deleteOnEmpty.minAgeSecs === undefined
-							? undefined
-							: Math.max(0, Math.floor(config.deleteOnEmpty.minAgeSecs)),
-				}
-			: config.deleteOnEmpty,
+		deleteOnEmpty: toAPIDeleteOnEmpty(config.deleteOnEmpty),
 		retentionPolicy: toAPIRetentionPolicy(config.retentionPolicy),
 	};
 }
@@ -179,7 +190,7 @@ export class S2Streams {
 				}),
 			);
 		});
-		return toCamelCase<Types.CreateStreamResponse>(response);
+		return transformStreamInfo(toCamelCase<any>(response));
 	}
 
 	/**
@@ -225,6 +236,43 @@ export class S2Streams {
 	}
 
 	/**
+	 * Ensure a stream.
+	 *
+	 * Creates the stream if it doesn't exist, or ensures its config exactly matches the provided
+	 * configuration after basin defaults and global defaults are applied. Uses HTTP PUT semantics
+	 * and is always idempotent.
+	 *
+	 * Returns `result: "created"` with the stream info if the stream was newly created,
+	 * `result: "updated"` if its config changed, or `result: "noop"` if no write was needed.
+	 */
+	public async ensure(
+		args: Types.EnsureStreamInput,
+		options?: S2RequestOptions,
+	): Promise<Types.EnsureStreamResponse> {
+		const body =
+			args.config === undefined
+				? undefined
+				: (toSnakeCase(
+						toAPIStreamConfig(args.config),
+					) as API.StreamConfig | null);
+		const response = await withRetries(this.retryConfig, async () => {
+			return await withS2DataAndResponse<API.StreamInfo>(() =>
+				ensureStream({
+					client: this.client,
+					path: { stream: args.stream },
+					body,
+					...options,
+				}),
+			);
+		});
+		const stream = toCamelCase<any>(response.data);
+		return {
+			result: provisionResultFromResponse(response.response),
+			stream: transformStreamInfo(stream),
+		};
+	}
+
+	/**
 	 * Reconfigure a stream.
 	 *
 	 * @param args Configuration for the stream to reconfigure (including stream name and fields to change)
@@ -234,15 +282,17 @@ export class S2Streams {
 		options?: S2RequestOptions,
 	): Promise<Types.ReconfigureStreamResponse> {
 		// Convert SDK config to API format (ageSecs → age)
+		const { stream, ...reconfigArgs } = args;
 		const apiArgs = {
-			...args,
+			...reconfigArgs,
+			deleteOnEmpty: toAPIDeleteOnEmpty(reconfigArgs.deleteOnEmpty),
 			retentionPolicy: toAPIRetentionPolicy(args.retentionPolicy),
 		};
 		const response = await withRetries(this.retryConfig, async () => {
 			return await withS2Data(() =>
 				reconfigureStream({
 					client: this.client,
-					path: args,
+					path: { stream },
 					body: toSnakeCase(apiArgs),
 					...options,
 				}),

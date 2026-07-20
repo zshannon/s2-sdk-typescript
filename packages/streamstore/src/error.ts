@@ -1,3 +1,5 @@
+import type { StreamPosition } from "./types.js";
+
 type ErrorWithCode = Error & {
 	code?: unknown;
 	cause?: unknown;
@@ -28,13 +30,27 @@ function isConnectionError(error: unknown): boolean {
 	// Chrome: "Failed to fetch"
 	// Firefox: "NetworkError when attempting to fetch resource"
 	// Safari: "Load failed"
-	const msg = error.message.toLowerCase();
-	if (
-		msg.includes("fetch failed") ||
-		msg.includes("failed to fetch") ||
-		msg.includes("networkerror") ||
-		msg.includes("load failed")
-	) {
+	// Some browser body-stream failures: "network error"
+	// Normalize: lowercase, strip trailing punctuation/whitespace
+	const msg = error.message.toLowerCase().replace(/[\s.!]+$/, "");
+	const knownConnectionMessages = [
+		"fetch failed",
+		"failed to fetch",
+		"networkerror when attempting to fetch resource",
+		"network error",
+		"load failed",
+		// undici SocketError: peer closed the connection
+		"other side closed",
+	];
+
+	if (knownConnectionMessages.includes(msg)) {
+		return true;
+	}
+
+	// undici reports a response body destroyed mid-stream as
+	// TypeError("terminated"). Restrict this generic message to TypeError so an
+	// unrelated application Error("terminated") is not made retryable.
+	if (error instanceof TypeError && msg === "terminated") {
 		return true;
 	}
 
@@ -49,6 +65,10 @@ function isConnectionError(error: unknown): boolean {
 		"EHOSTUNREACH", // Host unreachable
 		"ECONNRESET", // Connection reset by peer
 		"EPIPE", // Broken pipe
+		"UND_ERR_SOCKET", // undici: socket closed mid-request/response
+		"UND_ERR_CONNECT_TIMEOUT", // undici: connect timeout
+		"UND_ERR_HEADERS_TIMEOUT", // undici: headers timeout
+		"UND_ERR_BODY_TIMEOUT", // undici: body timeout
 	];
 
 	return typeof code === "string" && connectionErrorCodes.includes(code);
@@ -253,6 +273,25 @@ export class S2Error extends Error {
 		this.origin = origin ?? "sdk";
 		this.name = "S2Error";
 	}
+
+	/**
+	 * Returns true if the error guarantees that no mutation occurred.
+	 *
+	 * Certain server errors (`rate_limited`, `hot_server`) and client errors
+	 * (`ECONNREFUSED`) are safe to retry since they guarantee no side effects.
+	 */
+	hasNoSideEffects(): boolean {
+		if (this.origin === "server") {
+			return (
+				(this.status === 429 && this.code === "rate_limited") ||
+				(this.status === 502 && this.code === "hot_server")
+			);
+		}
+		if (this.origin === "sdk") {
+			return this.code === "ECONNREFUSED";
+		}
+		return false;
+	}
 }
 
 /** Helper: construct a non-retryable invariant violation error (status 0). */
@@ -361,19 +400,16 @@ export class FencingTokenMismatchError extends S2Error {
 }
 
 /**
- * Thrown when a read operation fails because the requested position is beyond the stream tail.
+ * Thrown when a read operation fails because the requested starting point is out of range
+ * (HTTP 416 Range Not Satisfiable).
  *
- * This occurs when you specify a `startSeqNum` that is greater than the current tail
- * of the stream (HTTP 416 Range Not Satisfiable).
+ * The `tail` property contains the current tail position of the stream when available.
  *
- * The `tail` property contains the current tail position of the stream.
- *
- * To handle this gracefully, you can set `clamp: true` in your read options to
- * automatically start from the tail instead of throwing an error.
+ * @see https://s2.dev/docs/api/records/read#starting-point-out-of-range
  */
 export class RangeNotSatisfiableError extends S2Error {
 	/** The current tail position of the stream. */
-	public readonly tail?: { seq_num: number; timestamp: number };
+	public readonly tail?: StreamPosition;
 
 	constructor({
 		code,
@@ -382,11 +418,11 @@ export class RangeNotSatisfiableError extends S2Error {
 	}: {
 		code?: string;
 		status?: number;
-		tail?: { seq_num: number; timestamp: number };
+		tail?: StreamPosition;
 	} = {}) {
 		const message = tail
-			? `Range not satisfiable: requested position is beyond the stream tail (seq_num=${tail.seq_num}). Use 'clamp: true' to start from the tail instead.`
-			: "Range not satisfiable: requested position is beyond the stream tail. Use 'clamp: true' to start from the tail instead.";
+			? `Range not satisfiable: starting point is out of range (tail seqNum=${tail.seqNum}).`
+			: "Range not satisfiable: starting point is out of range.";
 		super({
 			message,
 			code,

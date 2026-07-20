@@ -2,13 +2,20 @@ import {
 	type AuthProvider,
 	createAuthenticatedClient,
 	type RetryConfig,
+	type S2Compression,
 } from "./common.js";
 import type { Client } from "./generated/client/types.gen.js";
+import type { EncryptionKeyInput } from "./lib/encryption.js";
+import { resolveEncryptionKey } from "./lib/encryption.js";
 import {
 	canSetUserAgentHeader,
 	DEFAULT_USER_AGENT,
 } from "./lib/stream/runtime.js";
-import type { SessionTransports, TransportConfig } from "./lib/stream/types.js";
+import type {
+	Http2Settings,
+	SessionTransports,
+	TransportConfig,
+} from "./lib/stream/types.js";
 import { S2Stream } from "./stream.js";
 import { S2Streams } from "./streams.js";
 
@@ -20,7 +27,7 @@ export class S2Basin {
 	public readonly streams: S2Streams;
 
 	/**
-	 * Create a basin-scoped client that talks to `https://{basin}.b.aws.s2.dev/v1`.
+	 * Create a basin-scoped client that talks to `https://{basin}.b.s2.dev/v1`.
 	 *
 	 * Use this to work with streams inside a single basin.
 	 * @param name Basin name
@@ -33,6 +40,8 @@ export class S2Basin {
 			baseUrl: string;
 			includeBasinHeader: boolean;
 			retryConfig?: RetryConfig;
+			compression?: S2Compression;
+			http2?: Http2Settings;
 		},
 	) {
 		this.name = name;
@@ -44,6 +53,8 @@ export class S2Basin {
 			connectionTimeoutMillis: options.retryConfig?.connectionTimeoutMillis,
 			requestTimeoutMillis: options.retryConfig?.requestTimeoutMillis,
 			retry: options.retryConfig,
+			compression: options.compression,
+			http2: options.http2,
 		};
 		const headers: Record<string, string> = {};
 		if (options.includeBasinHeader) {
@@ -70,6 +81,7 @@ export class S2Basin {
 			this.client,
 			{
 				...this.transportConfig,
+				encryptionKey: resolveEncryptionKey(options?.encryptionKey),
 				forceTransport: options?.forceTransport,
 			},
 			this.retryConfig,
@@ -79,4 +91,10 @@ export class S2Basin {
 
 export interface StreamOptions {
 	forceTransport?: SessionTransports;
+	/**
+	 * Client-supplied encryption key for append/read operations on this stream.
+	 *
+	 * Accepts either base64-encoded key material or raw bytes.
+	 */
+	encryptionKey?: EncryptionKeyInput;
 }

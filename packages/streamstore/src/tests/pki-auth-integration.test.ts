@@ -5,13 +5,42 @@
  * - Root key mode: Uses bootstrap token (signed by root, public_key=root) for all operations
  * - Token + SigningKey mode: For all endpoints except /access-tokens
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPkiAuth } from "../auth/pki-auth.js";
 import { SigningKey } from "../auth/signing-key.js";
+import { S2 } from "../s2.js";
 
 const TEST_ROOT_KEY = "ByDGSRM82bqEVQoGYpZzvmmHujrB32UN1sr7WbKN6TPQ";
 
 describe("PKI Auth Integration", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("signs fetch requests made by the SDK client", async () => {
+		let request: Request | undefined;
+		vi.stubGlobal(
+			"fetch",
+			async (input: RequestInfo | URL, init?: RequestInit) => {
+				request = new Request(input, init);
+				return Response.json({ basins: [], has_more: false });
+			},
+		);
+
+		const s2 = new S2({
+			rootKey: TEST_ROOT_KEY,
+			endpoints: {
+				account: "https://example.com/v1",
+				basin: "https://example.com/v1",
+			},
+		});
+		await s2.basins.list();
+
+		expect(request?.headers.get("authorization")).toMatch(/^Bearer /);
+		expect(request?.headers.get("signature")).toBeTruthy();
+		expect(request?.headers.get("signature-input")).toBeTruthy();
+	});
+
 	describe("root key mode signs all endpoints with root key", () => {
 		it("allows signing requests to /access-tokens endpoints", async () => {
 			const auth = createPkiAuth({ rootKey: TEST_ROOT_KEY });

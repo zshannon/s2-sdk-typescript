@@ -7,6 +7,7 @@ import {
 	createAuthenticatedClient,
 	type RetryConfig,
 	type S2ClientOptions,
+	type S2Compression,
 } from "./common.js";
 import { S2Endpoints } from "./endpoints.js";
 import { makeServerError, S2Error } from "./error.js";
@@ -15,6 +16,8 @@ import {
 	canSetUserAgentHeader,
 	DEFAULT_USER_AGENT,
 } from "./lib/stream/runtime.js";
+import type { Http2Settings } from "./lib/stream/types.js";
+import { S2Locations } from "./locations.js";
 import { S2Metrics } from "./metrics.js";
 
 /**
@@ -34,15 +37,19 @@ export class S2 {
 	private readonly client: Client;
 	private readonly endpoints: S2Endpoints;
 	private readonly retryConfig: RetryConfig;
+	private readonly compression?: S2Compression;
+	private readonly http2?: Http2Settings;
 
 	/**
 	 * Account-scoped basin management operations.
 	 *
-	 * - List, create, delete and reconfigure basins.
+	 * - List, create, ensure, delete and reconfigure basins.
 	 */
 	public readonly basins: S2Basins;
 	/** Manage access tokens for the account (list, issue, revoke). */
 	public readonly accessTokens: S2AccessTokens;
+	/** Account location operations. */
+	public readonly locations: S2Locations;
 	/** Account, basin and stream level metrics. */
 	public readonly metrics: S2Metrics;
 
@@ -96,6 +103,9 @@ export class S2 {
 			options.endpoints instanceof S2Endpoints
 				? options.endpoints
 				: new S2Endpoints(options.endpoints);
+		this.compression = options.compression;
+		// Copy so later mutation of the caller's object cannot skew pool keying.
+		this.http2 = options.http2 ? { ...options.http2 } : undefined;
 		const headers: Record<string, string> = {};
 		if (canSetUserAgentHeader()) {
 			headers["user-agent"] = DEFAULT_USER_AGENT;
@@ -111,6 +121,7 @@ export class S2 {
 
 		this.basins = new S2Basins(this.client, this.retryConfig);
 		this.accessTokens = new S2AccessTokens(this.client, this.retryConfig);
+		this.locations = new S2Locations(this.client, this.retryConfig);
 		this.metrics = new S2Metrics(this.client, this.retryConfig);
 	}
 
@@ -134,6 +145,8 @@ export class S2 {
 			baseUrl: this.endpoints.basinBaseUrl(name),
 			includeBasinHeader: this.endpoints.includeBasinHeader,
 			retryConfig: this.retryConfig,
+			compression: this.compression,
+			http2: this.http2,
 		});
 	}
 }

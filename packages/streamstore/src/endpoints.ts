@@ -77,22 +77,19 @@ export class EndpointTemplate {
 		);
 		this.port = parsed.port;
 
+		if (parsed.search || parsed.hash) {
+			throw new Error(
+				`Endpoint cannot include query string or hash fragment: "${raw}". ` +
+					`Use headers for authentication or path prefixes for routing.`,
+			);
+		}
+
 		const parsedPath = parsed.pathname.replaceAll(
 			BASIN_PLACEHOLDER_SENTINEL,
 			"{basin}",
 		);
-		const parsedQuery = parsed.search.replaceAll(
-			BASIN_PLACEHOLDER_SENTINEL,
-			"{basin}",
-		);
-		const parsedHash = parsed.hash.replaceAll(
-			BASIN_PLACEHOLDER_SENTINEL,
-			"{basin}",
-		);
 
-		this.pathTemplate = explicitPathProvided
-			? `${parsedPath}${parsedQuery}${parsedHash}`
-			: DEFAULT_API_PATH;
+		this.pathTemplate = explicitPathProvided ? parsedPath : DEFAULT_API_PATH;
 		this.explicitPathProvided = explicitPathProvided;
 		this.hasBasinPlaceholder =
 			this.raw.includes("{basin}") ||
@@ -133,14 +130,13 @@ export type S2EndpointsInit = {
 	basin?: string;
 };
 
-const DEFAULT_ACCOUNT_ENDPOINT = "aws.s2.dev";
-const DEFAULT_BASIN_ENDPOINT = "{basin}.b.aws.s2.dev";
+const DEFAULT_ACCOUNT_ENDPOINT = "a.s2.dev";
+const DEFAULT_BASIN_ENDPOINT = "{basin}.b.s2.dev";
 
 /**
  * Endpoint configuration for the S2 environment.
  *
- * This mirrors the Rust SDK's endpoint model, with an additional capability:
- * the basin endpoint may include `{basin}` anywhere (hostname and/or path).
+ * The basin endpoint may include `{basin}` anywhere (hostname and/or path).
  */
 export class S2Endpoints {
 	public readonly account: EndpointTemplate;

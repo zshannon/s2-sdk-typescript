@@ -18,10 +18,14 @@ import {
 import type { Client } from "../../../../generated/client/index.js";
 import type * as API from "../../../../generated/index.js";
 import { read } from "../../../../generated/index.js";
+import { fromAPIStreamPosition } from "../../../../internal/mappers.js";
 import type * as Types from "../../../../types.js";
 import { computeAppendRecordFormat } from "../../../../utils.js";
 import { decodeFromBase64 } from "../../../base64.js";
+import { S2_ENCRYPTION_KEY_HEADER } from "../../../encryption.js";
 import { EventStream } from "../../../event-stream.js";
+import { FifoQueue } from "../../../queue.js";
+import * as Redacted from "../../../redacted.js";
 import type { AppendResult, CloseResult } from "../../../result.js";
 import { err, errClose, ok, okClose } from "../../../result.js";
 import {
@@ -76,21 +80,33 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
 		if (response.error) {
 			// Convert error to S2Error and throw - let caller handle connection errors
 			const status = response.response.status;
+			if (status === 416) {
+				const err =
+					typeof response.error === "object" && response.error !== null
+						? (response.error as {
+								code?: string;
+								tail?: API.StreamPosition;
+							})
+						: undefined;
+				throw new RangeNotSatisfiableError({
+					status,
+					code: err?.code,
+					tail: err?.tail ? fromAPIStreamPosition(err.tail) : undefined,
+				});
+			}
 			const error =
+				typeof response.error === "object" &&
+				response.error !== null &&
 				"message" in response.error
 					? new S2Error({
 							message: response.error.message,
 							code: response.error.code ?? undefined,
 							status,
 						})
-					: status === 416
-						? new RangeNotSatisfiableError({
-								status,
-							})
-						: new S2Error({
-								message: response.response.statusText ?? "Request failed",
-								status,
-							});
+					: new S2Error({
+							message: response.response.statusText ?? "Request failed",
+							status,
+						});
 			throw error;
 		}
 		if (!response.response.body) {
@@ -105,6 +121,14 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
 		return new FetchReadSession(response.response.body, format);
 	}
 
+	/** @internal */
+	static _createForTesting<Format extends "string" | "bytes" = "string">(
+		stream: ReadableStream<Uint8Array>,
+		format: Format,
+	): FetchReadSession<Format> {
+		return new FetchReadSession(stream, format);
+	}
+
 	private _nextReadPosition: API.StreamPosition | undefined = undefined;
 	private _lastObservedTail: API.StreamPosition | undefined = undefined;
 
@@ -112,9 +136,11 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
 		// Track error from parser
 		let parserError: S2Error | null = null;
 
-		// Track last ping time for timeout detection (20s without a ping = timeout)
+		// Track last SSE event time for timeout detection. Server heartbeats are
+		// randomized up to 15s apart; allow some scheduling and network slack
+		// before declaring the stream dead.
 		let lastPingTimeMs = performance.now();
-		const PING_TIMEOUT_MS = 20000; // 20 seconds
+		const PING_TIMEOUT_MS = 25000; // 25 seconds
 
 		// Create EventStream that parses SSE and yields records
 		const eventStream = new EventStream<ReadRecord<Format>>(stream, (msg) => {
@@ -179,6 +205,11 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
 
 		// Wrap the EventStream to convert records to ReadResult and check for errors
 		const reader = eventStream.getReader();
+		const cancelReader = async (reason?: unknown) => {
+			try {
+				await reader.cancel(reason);
+			} catch {}
+		};
 		let done = false;
 		// Track pending read to reuse across timeout retries
 		type ReaderResult = Awaited<ReturnType<typeof reader.read>>;
@@ -210,6 +241,7 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
 					}
 					const currentRead = pendingRead;
 
+					let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 					try {
 						// Race reader.read() against timeout
 						// If timeout fires but activity happened since scheduling, it's "stale" and we retry
@@ -218,19 +250,18 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
 								pendingRead = null;
 								return { type: "data" as const, value: r };
 							}),
-							new Promise<RaceResult>((resolve) =>
-								setTimeout(() => {
+							new Promise<RaceResult>((resolve) => {
+								timeoutHandle = setTimeout(() => {
 									if (lastPingTimeMs === capturedLastPingTime) {
 										// No activity since timeout was scheduled - actually timed out
 										debug("read session ping timeout");
 										resolve({ type: "timeout" });
 									} else {
-										// Activity happened - this timeout is stale, retry with new timeout
-										debug("stale timeout, activity detected, retrying");
+										// Activity happened - this timeout is stale, retry with new timeout.
 										resolve({ type: "stale" });
 									}
-								}, remainingTimeMs),
-							),
+								}, remainingTimeMs);
+							}),
 						]);
 
 						if (result.type === "stale") {
@@ -245,9 +276,16 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
 								status: 408,
 								code: "TIMEOUT",
 							});
+							debug(
+								"read session timeout elapsed_ms=%d timeout_ms=%d status=%d code=%s",
+								Math.floor(elapsed),
+								PING_TIMEOUT_MS,
+								timeoutError.status,
+								timeoutError.code,
+							);
 							controller.enqueue({ ok: false, error: timeoutError });
 							done = true;
-							await reader.cancel();
+							await cancelReader(timeoutError);
 							controller.close();
 							return;
 						}
@@ -267,16 +305,26 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
 						return;
 					} catch (error) {
 						// Convert unexpected errors to S2Error and emit as error result
-						controller.enqueue({ ok: false, error: s2Error(error) });
+						const readError = s2Error(error);
+						debug(
+							"read session body error status=%d code=%s origin=%s message=%s",
+							readError.status,
+							readError.code,
+							readError.origin,
+							readError.message,
+						);
+						controller.enqueue({ ok: false, error: readError });
 						done = true;
-						await reader.cancel();
+						await cancelReader(error);
 						controller.close();
 						return;
+					} finally {
+						if (timeoutHandle) clearTimeout(timeoutHandle);
 					}
 				}
 			},
 			cancel: async () => {
-				await reader.cancel();
+				await cancelReader("cancelled");
 			},
 		});
 	}
@@ -311,10 +359,20 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
 				return { done: false, value: r.value };
 			},
 			return: async (value?: any) => {
+				try {
+					await reader.cancel();
+				} catch (err: any) {
+					if (err?.code !== "ERR_INVALID_STATE") throw err;
+				}
 				reader.releaseLock();
 				return { done: true, value };
 			},
 			throw: async (e?: any) => {
+				try {
+					await reader.cancel(e);
+				} catch (err: any) {
+					if (err?.code !== "ERR_INVALID_STATE") throw err;
+				}
 				reader.releaseLock();
 				throw e;
 			},
@@ -338,11 +396,12 @@ export class FetchReadSession<Format extends "string" | "bytes" = "string">
  * No backpressure, no retry logic, no streams - just submit/close with value-encoded errors.
  */
 export class FetchAppendSession implements TransportAppendSession {
-	private queue: Array<Types.AppendInput> = [];
-	private pendingResolvers: Array<{
+	private queue = new FifoQueue<Types.AppendInput>();
+	private pendingResolvers = new FifoQueue<{
 		resolve: (result: AppendResult) => void;
-	}> = [];
+	}>();
 	private inFlight = false;
+	private _effectSignalled = false;
 	private readonly options?: S2RequestOptions;
 	private readonly stream: string;
 	private closed = false;
@@ -376,6 +435,11 @@ export class FetchAppendSession implements TransportAppendSession {
 		if (transportConfig.basinName) {
 			headers["s2-basin"] = transportConfig.basinName;
 		}
+		if (transportConfig.encryptionKey) {
+			headers[S2_ENCRYPTION_KEY_HEADER] = Redacted.value(
+				transportConfig.encryptionKey,
+			);
+		}
 		if (canSetUserAgentHeader()) {
 			headers["user-agent"] = DEFAULT_USER_AGENT;
 		}
@@ -384,6 +448,15 @@ export class FetchAppendSession implements TransportAppendSession {
 			transportConfig.authProvider,
 			headers,
 		);
+	}
+
+	/**
+	 * Returns true if data may have been sent to the server since the
+	 * last time the session was dormant (queue fully drained with no errors).
+	 * Only resets after the processing loop completes successfully.
+	 */
+	effectSignalled(): boolean {
+		return this._effectSignalled;
 	}
 
 	/**
@@ -508,6 +581,9 @@ export class FetchAppendSession implements TransportAppendSession {
 				input.matchSeqNum ?? "none",
 			);
 
+			// Mark effect before sending — data is about to enter the network
+			this._effectSignalled = true;
+
 			try {
 				const preferProtobuf = input.records.some(
 					(record) => computeAppendRecordFormat(record) === "bytes",
@@ -543,6 +619,11 @@ export class FetchAppendSession implements TransportAppendSession {
 					s2Err.message,
 				);
 
+				// Note: do NOT reset _effectSignalled here. The fetch was
+				// attempted, so data may have reached the server before the
+				// error was reported. The flag stays true until the session
+				// is recreated by the retry layer.
+
 				// Resolve this request with error
 				resolver.resolve(err(s2Err));
 
@@ -556,10 +637,10 @@ export class FetchAppendSession implements TransportAppendSession {
 				for (const pendingResolver of this.pendingResolvers) {
 					pendingResolver.resolve(err(s2Err));
 				}
-				this.pendingResolvers = [];
+				this.pendingResolvers.clear();
 
 				// Clear the queue
-				this.queue = [];
+				this.queue.clear();
 
 				this.inFlight = false;
 				this.processingPromise = null;
@@ -569,6 +650,8 @@ export class FetchAppendSession implements TransportAppendSession {
 			this.inFlight = false;
 		}
 
+		// Queue fully drained with no errors — session is dormant
+		this._effectSignalled = false;
 		debug("[%s] FetchAppendSession.processLoop: done", this.stream);
 		this.processingPromise = null;
 	}
@@ -597,6 +680,9 @@ export class FetchTransport implements SessionTransport {
 		const headers: Record<string, string> = {};
 		if (config.basinName) {
 			headers["s2-basin"] = config.basinName;
+		}
+		if (config.encryptionKey) {
+			headers[S2_ENCRYPTION_KEY_HEADER] = Redacted.value(config.encryptionKey);
 		}
 		if (canSetUserAgentHeader()) {
 			headers["user-agent"] = DEFAULT_USER_AGENT;

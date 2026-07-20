@@ -1,5 +1,5 @@
 import type { AppendHeaders, ReadHeaders } from "@s2-dev/streamstore";
-import { AppendRecord } from "@s2-dev/streamstore";
+import { AppendRecord, S2Error } from "@s2-dev/streamstore";
 
 import {
 	FRAME_BYTES_HEADER_BYTES,
@@ -69,6 +69,27 @@ export type CompletedFrame = {
 };
 
 /**
+ * Default cap on a frame's declared size (100 MiB). `_frame_bytes` is
+ * attacker-controlled, so frames declaring more than this are rejected with
+ * {@link FrameSizeError} before allocating. Override via
+ * {@link FrameAssemblerOptions.maxFrameBytes}.
+ */
+export const DEFAULT_MAX_FRAME_BYTES = 100 * 1024 * 1024;
+
+/** Thrown when a frame's size is invalid or exceeds the configured maximum. */
+export class FrameSizeError extends S2Error {
+	constructor(message: string) {
+		super({ message, code: "FRAME_SIZE", status: 0, origin: "sdk" });
+		this.name = "FrameSizeError";
+	}
+}
+
+export type FrameAssemblerOptions = {
+	/** Maximum declared frame size to allocate. Defaults to {@link DEFAULT_MAX_FRAME_BYTES}. */
+	maxFrameBytes?: number;
+};
+
+/**
  * Stateful helper that consumes byte records and yields complete frames when
  * all pieces have been received.
  */
@@ -78,6 +99,11 @@ export class FrameAssembler {
 	private writtenBytes = 0;
 	private expectedBytes = 0;
 	private currentMeta: FrameMeta | undefined;
+	private readonly maxFrameBytes: number;
+
+	constructor(options?: FrameAssemblerOptions) {
+		this.maxFrameBytes = options?.maxFrameBytes ?? DEFAULT_MAX_FRAME_BYTES;
+	}
 
 	push(record: ByteRecord): CompletedFrame[] {
 		const completed: CompletedFrame[] = [];
@@ -91,6 +117,12 @@ export class FrameAssembler {
 				// Incomplete frame: drop existing buffered data on new frame boundary.
 				this.reset();
 			}
+			if (maybeMeta.bytes <= 0 || maybeMeta.bytes > this.maxFrameBytes) {
+				// Reject before allocating, so a bad header can't exhaust memory.
+				throw new FrameSizeError(
+					`Frame declares ${maybeMeta.bytes} bytes, outside the allowed range (1..=${this.maxFrameBytes}); raise maxFrameBytes to read larger frames`,
+				);
+			}
 			this.buffer = new Uint8Array(maybeMeta.bytes);
 			this.remainingRecords = maybeMeta.records;
 			this.expectedBytes = maybeMeta.bytes;
@@ -99,6 +131,12 @@ export class FrameAssembler {
 		}
 
 		if (this.buffer && record.body) {
+			const remainingSpace = this.buffer.length - this.writtenBytes;
+			if (record.body.length > remainingSpace) {
+				// Body exceeds declared frame size — drop this frame.
+				this.reset();
+				return completed;
+			}
 			this.buffer.set(record.body, this.writtenBytes);
 			this.writtenBytes += record.body.length;
 			this.remainingRecords -= 1;

@@ -6,7 +6,9 @@ import type {
 import { S2Error } from "../../error.js";
 import type * as API from "../../generated/index.js";
 import type * as Types from "../../types.js";
+import type * as Redacted from "../redacted.js";
 import type * as Result from "../result.js";
+import type { CompressionType } from "./transport/s2s/framing.js";
 
 export type ReadHeaders<Format extends "string" | "bytes" = "string"> =
 	Format extends "string"
@@ -56,9 +58,8 @@ export type AppendRecord = Types.AppendRecord;
 /**
  * Stream of append acknowledgements used by {@link AppendSession}.
  */
-export interface AcksStream
-	extends ReadableStream<Types.AppendAck>,
-		AsyncIterable<Types.AppendAck> {}
+export type AcksStream = ReadableStream<Types.AppendAck> &
+	AsyncIterable<Types.AppendAck>;
 
 /**
  * Low-level append session implemented by transports.
@@ -69,6 +70,15 @@ export interface AcksStream
 export interface TransportAppendSession {
 	submit(input: Types.AppendInput): Promise<Result.AppendResult>;
 	close(): Promise<Result.CloseResult>;
+	/**
+	 * Returns true if data may have been sent to the server since the last
+	 * time the session was dormant (zero pending acks).
+	 *
+	 * Used by the retry layer under the `noSideEffects` policy: when false,
+	 * it is safe to retry even errors that could otherwise indicate a
+	 * mutation, because no bytes left the client.
+	 */
+	effectSignalled(): boolean;
 }
 
 export class BatchSubmitTicket {
@@ -152,14 +162,13 @@ export type ReadResult<Format extends "string" | "bytes" = "string"> =
  * Transport implementations yield ReadResult and never throw errors from the stream.
  * ReadSession wraps these and converts them to the public ReadSession interface.
  */
-export interface TransportReadSession<
-	Format extends "string" | "bytes" = "string",
-> extends ReadableStream<ReadResult<Format>>,
-		AsyncIterable<ReadResult<Format>>,
-		AsyncDisposable {
-	nextReadPosition(): API.StreamPosition | undefined;
-	lastObservedTail(): API.StreamPosition | undefined;
-}
+export type TransportReadSession<Format extends "string" | "bytes" = "string"> =
+	ReadableStream<ReadResult<Format>> &
+		AsyncIterable<ReadResult<Format>> &
+		AsyncDisposable & {
+			nextReadPosition(): API.StreamPosition | undefined;
+			lastObservedTail(): API.StreamPosition | undefined;
+		};
 
 /**
  * Public-facing read session interface.
@@ -179,19 +188,19 @@ export interface TransportReadSession<
  * }
  * ```
  */
-export interface ReadSession<Format extends "string" | "bytes" = "string">
-	extends ReadableStream<Types.ReadRecord<Format>>,
-		AsyncIterable<Types.ReadRecord<Format>>,
-		AsyncDisposable {
-	/**
-	 * Get the next read position, if known.
-	 */
-	nextReadPosition(): Types.StreamPosition | undefined;
-	/**
-	 * Get the last observed tail position, if known.
-	 */
-	lastObservedTail(): Types.StreamPosition | undefined;
-}
+export type ReadSession<Format extends "string" | "bytes" = "string"> =
+	ReadableStream<Types.ReadRecord<Format>> &
+		AsyncIterable<Types.ReadRecord<Format>> &
+		AsyncDisposable & {
+			/**
+			 * Get the next read position, if known.
+			 */
+			nextReadPosition(): Types.StreamPosition | undefined;
+			/**
+			 * Get the last observed tail position, if known.
+			 */
+			lastObservedTail(): Types.StreamPosition | undefined;
+		};
 
 /**
  * Options that control client-side append backpressure and concurrency.
@@ -226,9 +235,45 @@ export interface SessionTransport {
 
 export type SessionTransports = "fetch" | "s2s";
 
+/**
+ * HTTP/2 flow-control settings for the s2s transport.
+ *
+ * Only applies where sessions run over `s2s` (HTTP/2); the fetch transport
+ * ignores these. Connections are pooled per endpoint, and clients configured
+ * with different settings do not share connections.
+ */
+export interface Http2Settings {
+	/**
+	 * Flow-control receive window for each HTTP/2 stream, in bytes.
+	 *
+	 * Bounds how much data the server can have in flight on a single read
+	 * session before the client acknowledges it. Raise this to keep
+	 * high-throughput reads saturated over high-latency links; S2 read
+	 * batches can be up to 1 MiB each.
+	 *
+	 * Must be an integer between 65,535 and 2^31 - 1.
+	 * @default 10_485_760 (10 MiB)
+	 */
+	initialStreamWindowSize?: number;
+	/**
+	 * Flow-control receive window for each HTTP/2 connection, in bytes.
+	 *
+	 * Bounds in-flight data summed across all sessions multiplexed on one
+	 * connection (up to 100 streams per connection).
+	 *
+	 * Must be an integer between 65,535 and 2^31 - 1.
+	 * @default 10_485_760 (10 MiB)
+	 */
+	connectionWindowSize?: number;
+}
+
 export interface TransportConfig {
 	baseUrl: string;
 	authProvider: AuthProvider;
+	/**
+	 * Optional base64-encoded client-supplied encryption key for data-plane requests.
+	 */
+	encryptionKey?: Redacted.Redacted<string>;
 	forceTransport?: SessionTransports;
 	/**
 	 * Basin name to include in s2-basin header when using account endpoint
@@ -246,4 +291,13 @@ export interface TransportConfig {
 	 * Retry configuration inherited from the top-level client
 	 */
 	retry?: RetryConfig;
+	/**
+	 * Compression algorithm applied to s2s frame bodies and advertised via
+	 * `Accept-Encoding`. Defaults to `"none"`.
+	 */
+	compression?: CompressionType;
+	/**
+	 * HTTP/2 flow-control settings for the s2s transport.
+	 */
+	http2?: Http2Settings;
 }

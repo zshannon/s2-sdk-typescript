@@ -2,12 +2,26 @@ import type { PkiAuthContext } from "./auth/pki-auth.js";
 import { S2Endpoints, type S2EndpointsInit } from "./endpoints.js";
 import { createClient, createConfig } from "./generated/client/index.js";
 import type { Client } from "./generated/client/types.gen.js";
+import type { CompressionType } from "./lib/stream/transport/s2s/framing.js";
+import type { Http2Settings } from "./lib/stream/types.js";
+
+/**
+ * Compression algorithm for s2s session frame bodies.
+ *
+ * - `"none"` (default): no compression.
+ * - `"gzip"`: requires Node.js with `zlib` (always available).
+ * - `"zstd"`: requires Node.js v22.15+ for built-in zstd support.
+ */
+export type S2Compression = CompressionType;
 
 /**
  * Policy for retrying append operations.
  *
- * - `all`: Retry all append operations, including those that may have side effects (default)
- * - `noSideEffects`: Only retry append operations that are guaranteed to have no side effects
+ * - `all`: Retry all append operations, including those that may have side effects.
+ *   Use when duplicate records on the stream are acceptable.
+ * - `noSideEffects`: Retry when it can be determined that the request had no side effects.
+ *   Certain server errors (`rate_limited`, `hot_server`) and client errors (`ECONNREFUSED`)
+ *   are safe to retry since they guarantee no mutation occurred.
  */
 export type AppendRetryPolicy = "all" | "noSideEffects";
 
@@ -143,7 +157,7 @@ export type S2ClientOptions = {
 	/**
 	 * Endpoint configuration for the S2 environment.
 	 *
-	 * Defaults to AWS (`aws.s2.dev` and `{basin}.b.aws.s2.dev`) with the API base path inferred as `/v1`.
+	 * Defaults to AWS (`a.s2.dev` and `{basin}.b.s2.dev`) with the API base path inferred as `/v1`.
 	 */
 	endpoints?: S2Endpoints | S2EndpointsInit;
 	/**
@@ -170,6 +184,23 @@ export type S2ClientOptions = {
 	 * @default { maxAttempts: 3, minBaseDelayMillis: 100, maxBaseDelayMillis: 1000, appendRetryPolicy: "all" }
 	 */
 	retry?: RetryConfig;
+	/**
+	 * Compression for s2s session frame bodies. The configured algorithm is
+	 * applied to outgoing frame bodies and advertised via `Accept-Encoding`
+	 * so the server may compress responses. Incoming frames are always
+	 * decompressed based on the per-frame flag, regardless of this setting.
+	 *
+	 * Defaults to `"none"`.
+	 */
+	compression?: S2Compression;
+	/**
+	 * HTTP/2 flow-control tuning for sessions using the s2s transport.
+	 *
+	 * The defaults (10 MiB windows) suit most workloads; raise the windows to
+	 * keep high-throughput reads saturated over high-latency links. Ignored
+	 * by the fetch transport.
+	 */
+	http2?: Http2Settings;
 };
 
 /**

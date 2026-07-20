@@ -1,0 +1,83 @@
+{
+  "name": "@s2-dev/resumable-stream",
+  "version": "3.0.2",
+  "description": "Resumable streams based on s2.dev, inspired by Vercel's implementation.",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://s2.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/s2-streamstore/s2-sdk-typescript"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./aisdk": {
+      "types": "./dist/aisdk/index.d.ts",
+      "default": "./dist/aisdk/index.js"
+    },
+    "./tanstack-ai": {
+      "types": "./dist/tanstack-ai/index.d.ts",
+      "default": "./dist/tanstack-ai/index.js"
+    },
+    "./tanstack-ai/client": {
+      "types": "./dist/tanstack-ai/client.d.ts",
+      "default": "./dist/tanstack-ai/client.js"
+    },
+    "./anthropic": {
+      "types": "./dist/anthropic/index.d.ts",
+      "default": "./dist/anthropic/index.js"
+    },
+    "./anthropic/client": {
+      "types": "./dist/anthropic/client.d.ts",
+      "default": "./dist/anthropic/client.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "check": "tsc --noEmit",
+    "format": "biome format --write",
+    "lint": "biome check",
+    "test": "vitest --run"
+  },
+  "sideEffects": false,
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "*",
+    "@s2-dev/streamstore": ">=0.21.0",
+    "@tanstack/ai": "*",
+    "@tanstack/ai-client": "*",
+    "ai": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@tanstack/ai": {
+      "optional": true
+    },
+    "@tanstack/ai-client": {
+      "optional": true
+    },
+    "ai": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "eventsource-parser": "^3.0.8"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "ai": "^6.0.142"
+  }
+}

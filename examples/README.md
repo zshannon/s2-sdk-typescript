@@ -12,12 +12,75 @@ Create a basin.
 export S2_BASIN="example-$(xxd -l 4 -p /dev/random)"
 echo $S2_BASIN
 ```
-This can be done with the S2 CLI:
-```bash
 
+This can be done with the S2 CLI:
+
+```bash
 s2 create-basin "${S2_BASIN}" --create-stream-on-append
 ```
 
-Or the create-basin example itself:
+## Running examples
 
-TODO
+With `S2_BASIN` and `S2_ACCESS_TOKEN` set, try running an example:
+
+```bash
+npx tsx producer.ts
+```
+
+Some examples require additional variables
+
+### TanStack AI
+
+A TanStack Start chat app with one S2 transcript stream per chat and a resumable live stream per active turn. Uses a local fallback stream by default. Set `OPENAI_API_KEY` to use a real model.
+
+```bash
+bun run example:tanstack-ai-chat
+
+# Optional real model mode:
+export OPENAI_API_KEY="sk-..."
+bun run example:tanstack-ai-chat
+```
+
+Open [http://127.0.0.1:3458](http://127.0.0.1:3458). See [tanstack-ai-chat/README.md](tanstack-ai-chat/README.md) for the route layout.
+
+### AI SDK examples
+
+These require model provider API keys.
+
+#### Agent session
+
+An example agent session involving inference and tool use, where all results are stored on a per-session stream in real time.
+
+The stream can be followed (by a dashboard or CLI, where the stream is consumed live), or audited later.
+
+```bash
+export OPENAI_API_KEY="sk-proj-XXXXX"
+npx tsx ai-sdk-agent-session.ts
+```
+
+#### Chat persistence
+
+A multi-turn chatbot where the full conversation is persisted on an S2 stream. On restart, the conversation history is replayed from the stream so the model retains full context.
+
+```bash
+export OPENAI_API_KEY="sk-proj-XXXXX"
+npx tsx ai-sdk-chat-persistence.ts
+```
+
+#### Resumable chat
+
+A browser chat demo with two S2 layers: one transcript stream for completed messages, and one token stream for the currently streaming assistant response. Refreshing mid-generation resumes the active turn, and refreshing after completion reloads prior chat history.
+
+```bash
+export OPENAI_API_KEY="sk-proj-XXXXX"
+bun run ai-sdk-resumable-chat/server.ts
+```
+
+#### Dinner party
+
+A multi-agent conversation where N guests (each an LLM with a distinct persona) sit around a table and discuss a topic. Each guest has their own S2 stream for working memory, and they communicate through a shared bus stream. The conversation is fully resumable.
+
+```bash
+export OPENAI_API_KEY="sk-proj-XXXXX"
+npx tsx ai-sdk-dinner-party.ts "What is the meaning of life?"
+```
