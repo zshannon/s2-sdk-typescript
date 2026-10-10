@@ -1,4 +1,5 @@
 import createDebug from "debug";
+import { configurePkiClient } from "../../../../internal/pki-client.js";
 
 /** Type for ReadableStream with optional async iterator support. */
 type ReadableStreamWithAsyncIterator<T> = ReadableStream<T> & {
@@ -448,10 +449,13 @@ export class FetchAppendSession implements TransportAppendSession {
 		this.client = createClient(
 			createConfig({
 				baseUrl: transportConfig.baseUrl,
-				auth: () => Redacted.value(transportConfig.accessToken),
+				auth: transportConfig.accessToken
+					? () => Redacted.value(transportConfig.accessToken!)
+					: undefined,
 				headers: headers,
 			}),
 		);
+		configurePkiClient(this.client, transportConfig.pki);
 	}
 
 	/**
@@ -694,10 +698,13 @@ export class FetchTransport implements SessionTransport {
 		this.client = createClient(
 			createConfig({
 				baseUrl: config.baseUrl,
-				auth: () => Redacted.value(config.accessToken),
+				auth: config.accessToken
+					? () => Redacted.value(config.accessToken!)
+					: undefined,
 				headers: headers,
 			}),
 		);
+		configurePkiClient(this.client, config.pki);
 		this.transportConfig = config;
 	}
 

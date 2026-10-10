@@ -301,6 +301,11 @@ for await (const record of readSession) {
 
 ## Client configuration
 
+This fork also supports PKI v2 credentials, native Biscuit grants, holder-signed
+delegation, HTTP Message Signatures and grant revocation. See the
+[PKI setup and temporary ENG-716 package link](packages/streamstore/README.md#pki-v2-authentication).
+
+
 ### Retries and append retry policy
 
 <!-- snippet:start client-config -->

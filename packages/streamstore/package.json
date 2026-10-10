@@ -33,6 +33,16 @@
         "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
       }
+    },
+    "./pki": {
+      "import": {
+        "types": "./dist/esm/pki/index.d.ts",
+        "default": "./dist/esm/pki/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/pki/index.d.ts",
+        "default": "./dist/cjs/pki/index.js"
+      }
     }
   },
   "files": [
@@ -41,7 +51,18 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@flickfyi/biscuit": "link:@flickfyi/biscuit",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
     "@protobuf-ts/runtime": "^2.11.1",
+    "@scure/base": "2.4.0",
     "debug": "^4.4.3"
+  },
+  "typesVersions": {
+    "*": {
+      "pki": [
+        "./dist/cjs/pki/index.d.ts"
+      ]
+    }
   }
 }

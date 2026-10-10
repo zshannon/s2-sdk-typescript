@@ -10,6 +10,36 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const pkgRoot = join(__dirname, "..", "..");
 
 describe("browser bundling", () => {
+	it("bundles the PKI entry and signer without Node-only dependencies", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "streamstore-pki-bundle-"));
+		try {
+			const entry = join(dir, "entry.ts");
+			writeFileSync(
+				entry,
+				`import { ClientKey, issueGrant, PkiCredentials } from ${JSON.stringify(join(pkgRoot, "src/pki/index.ts"))}; console.log(ClientKey, issueGrant, PkiCredentials);`,
+			);
+			const result = await build({
+				entryPoints: [entry],
+				bundle: true,
+				platform: "browser",
+				target: "es2022",
+				outfile: join(dir, "out.js"),
+				metafile: true,
+				logLevel: "silent",
+				tsconfig: join(pkgRoot, "tsconfig.json"),
+			});
+			expect(result.errors).toEqual([]);
+			expect(result.warnings).toEqual([]);
+			expect(
+				Object.values(result.metafile.outputs)
+					.flatMap((output) => output.imports)
+					.filter((imported) => imported.path.startsWith("node:")),
+			).toEqual([]);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("bundles without pulling in Node-only compression modules", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "streamstore-bundle-"));
 		try {

@@ -207,4 +207,11 @@ export { randomToken } from "./lib/base64.js";
 export type { ListAllArgs, Page, PageFetcher } from "./lib/paginate.js";
 export { paginate } from "./lib/paginate.js";
 export type { Redacted } from "./lib/redacted.js";
+export type {
+	GrantDocument,
+	GrantScope,
+	PkiCredentials,
+	PkiOperation,
+	ResourceScope,
+} from "./pki/index.js";
 export { meteredBytes, utf8ByteLength } from "./utils.js";

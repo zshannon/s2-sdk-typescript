@@ -62,7 +62,11 @@ export class S2AccessTokens {
 	readonly client: Client;
 	private readonly retryConfig?: RetryConfig;
 
-	constructor(client: Client, retryConfig?: RetryConfig) {
+	constructor(
+		client: Client,
+		retryConfig?: RetryConfig,
+		private readonly pki = false,
+	) {
 		this.client = client;
 		this.retryConfig = retryConfig;
 	}
@@ -78,6 +82,7 @@ export class S2AccessTokens {
 		args?: Types.ListAccessTokensInput,
 		options?: S2RequestOptions,
 	): Promise<Types.ListAccessTokensResponse> {
+		this.requireBearer();
 		const response = await withRetries(this.retryConfig, async () => {
 			return await withS2Data(() =>
 				listAccessTokens({
@@ -134,6 +139,7 @@ export class S2AccessTokens {
 		args: Types.IssueAccessTokenInput,
 		options?: S2RequestOptions,
 	): Promise<Types.IssueAccessTokenResponse> {
+		this.requireBearer();
 		validateAccessTokenId(args.id);
 		// Convert Date to ISO string for API
 		const apiArgs = {
@@ -161,6 +167,7 @@ export class S2AccessTokens {
 		args: Types.RevokeAccessTokenInput,
 		options?: S2RequestOptions,
 	): Promise<void> {
+		this.requireBearer();
 		await withRetries(this.retryConfig, async () => {
 			return await withS2Data(() =>
 				revokeAccessToken({
@@ -170,5 +177,13 @@ export class S2AccessTokens {
 				}),
 			);
 		});
+	}
+	private requireBearer(): void {
+		if (this.pki)
+			throw new S2Error({
+				message:
+					"Access token management is unavailable in PKI mode; issue or delegate Biscuit grants locally",
+				origin: "sdk",
+			});
 	}
 }
