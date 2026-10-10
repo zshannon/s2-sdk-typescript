@@ -1,5 +1,11 @@
 # @s2-dev/resumable-stream
 
+## 3.0.3
+
+### Patch Changes
+
+- dc97417: Publish the fork under the public @zshannon scope. Add Rust-compatible PKI v2 credentials, native Biscuit grants, holder-signed delegation and HTTP message signatures to the core SDK.
+
 ## 3.0.2
 
 ### Patch Changes
