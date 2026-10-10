@@ -16,15 +16,15 @@ export default defineConfig({
 	},
 	resolve: {
 		alias: {
-			"@s2-dev/resumable-stream/tanstack-ai/client": resolve(
+			"@zshannon/resumable-stream/tanstack-ai/client": resolve(
 				repoRoot,
 				"packages/resumable-stream/src/tanstack-ai/client.ts",
 			),
-			"@s2-dev/resumable-stream/tanstack-ai": resolve(
+			"@zshannon/resumable-stream/tanstack-ai": resolve(
 				repoRoot,
 				"packages/resumable-stream/src/tanstack-ai/index.ts",
 			),
-			"@s2-dev/streamstore": resolve(
+			"@zshannon/streamstore": resolve(
 				repoRoot,
 				"packages/streamstore/src/index.ts",
 			),

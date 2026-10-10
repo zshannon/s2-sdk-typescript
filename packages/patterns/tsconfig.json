@@ -12,7 +12,7 @@
 		"forceConsistentCasingInFileNames": true,
 		"baseUrl": ".",
 		"paths": {
-			"@s2-dev/streamstore": ["../streamstore/dist/esm/index.d.ts"]
+			"@zshannon/streamstore": ["../streamstore/dist/esm/index.d.ts"]
 		}
 	},
 	"include": ["src"],

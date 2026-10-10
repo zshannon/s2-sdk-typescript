@@ -3,7 +3,7 @@ import {
 	AppendInput,
 	AppendRecord,
 	meteredBytes,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import { describe, expect, it } from "vitest";
 import { MAX_RECORD_BYTES } from "../patterns/chunking.js";
 import {

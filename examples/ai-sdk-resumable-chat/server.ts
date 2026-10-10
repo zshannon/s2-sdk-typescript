@@ -7,8 +7,8 @@ import {
 	AppendInput,
 	AppendRecord,
 	S2,
-} from "@s2-dev/streamstore";
-import { createResumableChat } from "@s2-dev/resumable-stream/aisdk";
+} from "@zshannon/streamstore";
+import { createResumableChat } from "@zshannon/resumable-stream/aisdk";
 
 const PORT = Number.parseInt(process.env.PORT || "3457", 10);
 const PUBLIC_DIR = join(dirname(import.meta.path), "public");

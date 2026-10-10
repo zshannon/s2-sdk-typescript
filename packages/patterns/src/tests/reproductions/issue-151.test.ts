@@ -1,4 +1,4 @@
-import { AppendRecord, meteredBytes } from "@s2-dev/streamstore";
+import { AppendRecord, meteredBytes } from "@zshannon/streamstore";
 import { describe, expect, it } from "vitest";
 import { injectDedupeHeaders } from "../../patterns/dedupe.js";
 

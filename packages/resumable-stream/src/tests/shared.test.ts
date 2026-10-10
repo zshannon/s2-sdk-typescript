@@ -3,7 +3,7 @@ import {
 	type AppendInput,
 	type ReadRecord,
 	S2Error,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import { describe, expect, it } from "vitest";
 import {
 	claimSessionGeneration,

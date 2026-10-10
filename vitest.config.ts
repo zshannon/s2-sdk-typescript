@@ -8,15 +8,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
-      '@s2-dev/streamstore': resolve(
+      '@zshannon/streamstore': resolve(
         __dirname,
         'packages/streamstore/src/index.ts',
       ),
-      '@s2-dev/resumable-stream': resolve(
+      '@zshannon/resumable-stream': resolve(
         __dirname,
         'packages/resumable-stream/src/index.ts',
       ),
-      '@s2-dev/resumable-stream/aisdk': resolve(
+      '@zshannon/resumable-stream/aisdk': resolve(
         __dirname,
         'packages/resumable-stream/src/aisdk/index.ts',
       ),

@@ -1,4 +1,4 @@
-import { S2, S2Environment, S2Error } from "@s2-dev/streamstore";
+import { S2, S2Environment, S2Error } from "@zshannon/streamstore";
 
 const accessToken = process.env.S2_ACCESS_TOKEN;
 if (!accessToken) {

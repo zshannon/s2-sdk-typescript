@@ -12,24 +12,24 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"paths": {
-			"@s2-dev/streamstore": ["packages/streamstore/src/index.ts"],
-			"@s2-dev/streamstore/*": ["packages/streamstore/src/*"],
-			"@s2-dev/streamstore-patterns": ["packages/patterns/src/index.ts"],
-			"@s2-dev/streamstore-patterns/*": ["packages/patterns/src/*"],
-			"@s2-dev/resumable-stream": ["packages/resumable-stream/src/index.ts"],
-			"@s2-dev/resumable-stream/aisdk": [
+			"@zshannon/streamstore": ["packages/streamstore/src/index.ts"],
+			"@zshannon/streamstore/*": ["packages/streamstore/src/*"],
+			"@zshannon/streamstore-patterns": ["packages/patterns/src/index.ts"],
+			"@zshannon/streamstore-patterns/*": ["packages/patterns/src/*"],
+			"@zshannon/resumable-stream": ["packages/resumable-stream/src/index.ts"],
+			"@zshannon/resumable-stream/aisdk": [
 				"packages/resumable-stream/src/aisdk/index.ts"
 			],
-			"@s2-dev/resumable-stream/tanstack-ai": [
+			"@zshannon/resumable-stream/tanstack-ai": [
 				"packages/resumable-stream/src/tanstack-ai/index.ts"
 			],
-			"@s2-dev/resumable-stream/tanstack-ai/client": [
+			"@zshannon/resumable-stream/tanstack-ai/client": [
 				"packages/resumable-stream/src/tanstack-ai/client.ts"
 			],
-			"@s2-dev/resumable-stream/anthropic": [
+			"@zshannon/resumable-stream/anthropic": [
 				"packages/resumable-stream/src/anthropic/index.ts"
 			],
-			"@s2-dev/resumable-stream/anthropic/client": [
+			"@zshannon/resumable-stream/anthropic/client": [
 				"packages/resumable-stream/src/anthropic/client.ts"
 			]
 		}

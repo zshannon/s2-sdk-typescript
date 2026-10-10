@@ -1,7 +1,7 @@
-import { createConnection } from "@s2-dev/resumable-stream/tanstack-ai/client";
 import type { UIMessage } from "@tanstack/ai-react";
 import { useChat } from "@tanstack/ai-react";
 import { createFileRoute } from "@tanstack/react-router";
+import { createConnection } from "@zshannon/resumable-stream/tanstack-ai/client";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 const CHAT_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;

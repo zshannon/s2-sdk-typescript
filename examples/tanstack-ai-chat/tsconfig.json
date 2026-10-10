@@ -11,13 +11,13 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@s2-dev/resumable-stream/tanstack-ai": [
+      "@zshannon/resumable-stream/tanstack-ai": [
         "../../packages/resumable-stream/src/tanstack-ai/index.ts"
       ],
-      "@s2-dev/resumable-stream/tanstack-ai/client": [
+      "@zshannon/resumable-stream/tanstack-ai/client": [
         "../../packages/resumable-stream/src/tanstack-ai/client.ts"
       ],
-      "@s2-dev/streamstore": ["../../packages/streamstore/src/index.ts"]
+      "@zshannon/streamstore": ["../../packages/streamstore/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]

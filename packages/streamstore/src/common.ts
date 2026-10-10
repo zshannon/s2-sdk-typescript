@@ -1,6 +1,7 @@
 import { S2Endpoints, type S2EndpointsInit } from "./endpoints.js";
 import type { CompressionType } from "./lib/stream/transport/s2s/framing.js";
 import type { Http2Settings } from "./lib/stream/types.js";
+import type { PkiCredentials } from "./pki/index.js";
 
 /**
  * Compression algorithm for s2s session frame bodies.
@@ -79,7 +80,10 @@ export type RetryConfig = {
 	connectionTimeoutMillis?: number;
 };
 
-export type S2EnvironmentConfig = Partial<S2ClientOptions>;
+/** Environment parsing supplies Bearer credentials and connection settings. */
+export type S2EnvironmentConfig = Partial<
+	Extract<S2ClientOptions, { accessToken: string }>
+>;
 
 export class S2Environment {
 	public static parse(): S2EnvironmentConfig {
@@ -107,18 +111,14 @@ export class S2Environment {
 /**
  * Configuration for constructing the top-level `S2` client.
  *
- * - The client authenticates using a Bearer access token on every request.
+ * Select Bearer authentication or PKI v2 credentials.
  */
-export type S2ClientOptions = {
-	/**
-	 * Access token used for HTTP Bearer authentication.
-	 * Typically obtained via your S2 account or created using `s2.accessTokens.issue`.
-	 */
-	accessToken: string;
+type S2ClientSettings = {
 	/**
 	 * Endpoint configuration for the S2 environment.
 	 *
-	 * Defaults to AWS (`a.s2.dev` and `{basin}.b.s2.dev`) with the API base path inferred as `/v1`.
+	 * Defaults to AWS for Bearer authentication, or the grant audience for PKI.
+	 * The API base path is inferred as `/v1`.
 	 */
 	endpoints?: S2Endpoints | S2EndpointsInit;
 	/**
@@ -163,6 +163,13 @@ export type S2ClientOptions = {
 	 */
 	http2?: Http2Settings;
 };
+
+/** Select exactly one authentication mode. */
+export type S2ClientOptions = S2ClientSettings &
+	(
+		| { accessToken: string; pki?: never }
+		| { accessToken?: never; pki: PkiCredentials }
+	);
 
 /**
  * Per-request options that apply to all SDK operations.

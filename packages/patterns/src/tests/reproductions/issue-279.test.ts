@@ -1,4 +1,4 @@
-import { S2Error } from "@s2-dev/streamstore";
+import { S2Error } from "@zshannon/streamstore";
 import { describe, expect, it } from "vitest";
 import { SerializingAppendSession } from "../../patterns/serialization.js";
 

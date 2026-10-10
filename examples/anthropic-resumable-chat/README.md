@@ -8,8 +8,8 @@ Two S2 streams per chat:
 
 | Stream | Written by | Holds |
 | --- | --- | --- |
-| `${HISTORY_PREFIX}-${chatId}` | Raw `@s2-dev/streamstore` (`stream.append`) | One record per chat message: `{ role: "user", content: string }` or `{ role: "assistant", content: ContentBlock[] }`. |
-| `${LIVE_PREFIX}-${chatId}-${turnIdx}` | `createResumableChat` from `@s2-dev/resumable-stream/anthropic` | The raw Anthropic event sequence for one turn. One stream per turn (single-use mode). |
+| `${HISTORY_PREFIX}-${chatId}` | Raw `@zshannon/streamstore` (`stream.append`) | One record per chat message: `{ role: "user", content: string }` or `{ role: "assistant", content: ContentBlock[] }`. |
+| `${LIVE_PREFIX}-${chatId}-${turnIdx}` | `createResumableChat` from `@zshannon/resumable-stream/anthropic` | The raw Anthropic event sequence for one turn. One stream per turn (single-use mode). |
 
 The server is the source of truth. The browser fetches `/api/chat/history` to render the conversation, then tails `/api/chat/stream` if a turn is in flight.
 

@@ -1,4 +1,4 @@
-import { AppendRecord, S2Error } from "@s2-dev/streamstore";
+import { AppendRecord, S2Error } from "@zshannon/streamstore";
 import { describe, expect, it } from "vitest";
 import {
 	DEDUPE_SEQ_HEADER,

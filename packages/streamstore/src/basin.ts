@@ -1,6 +1,7 @@
 import type { RetryConfig, S2Compression } from "./common.js";
 import { createClient, createConfig } from "./generated/client/index.js";
 import type { Client } from "./generated/client/types.gen.js";
+import { configurePkiClient } from "./internal/pki-client.js";
 import type { EncryptionKeyInput } from "./lib/encryption.js";
 import { resolveEncryptionKey } from "./lib/encryption.js";
 import * as Redacted from "./lib/redacted.js";
@@ -13,6 +14,7 @@ import type {
 	SessionTransports,
 	TransportConfig,
 } from "./lib/stream/types.js";
+import type { PkiCredentials } from "./pki/index.js";
 import { S2Stream } from "./stream.js";
 import { S2Streams, validateStreamName } from "./streams.js";
 
@@ -33,7 +35,8 @@ export class S2Basin {
 	constructor(
 		name: string,
 		options: {
-			accessToken: Redacted.Redacted;
+			accessToken?: Redacted.Redacted;
+			pki?: PkiCredentials;
 			baseUrl: string;
 			includeBasinHeader: boolean;
 			retryConfig?: RetryConfig;
@@ -46,6 +49,7 @@ export class S2Basin {
 		this.transportConfig = {
 			baseUrl: options.baseUrl,
 			accessToken: options.accessToken,
+			pki: options.pki,
 			basinName: options.includeBasinHeader ? name : undefined,
 			connectionTimeoutMillis: options.retryConfig?.connectionTimeoutMillis,
 			requestTimeoutMillis: options.retryConfig?.requestTimeoutMillis,
@@ -63,10 +67,14 @@ export class S2Basin {
 		this.client = createClient(
 			createConfig({
 				baseUrl: options.baseUrl,
-				auth: () => Redacted.value(this.transportConfig.accessToken),
+				auth: options.accessToken
+					? () => Redacted.value(options.accessToken!)
+					: undefined,
 				headers: headers,
 			}),
 		);
+
+		configurePkiClient(this.client, options.pki);
 
 		this.streams = new S2Streams(this.client, this.retryConfig);
 	}

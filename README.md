@@ -14,7 +14,7 @@
 
   <p>
     <!-- npm -->
-    <a href="https://www.npmjs.com/package/@s2-dev/streamstore"><img src="https://img.shields.io/npm/v/@s2-dev/streamstore.svg" alt="npm version" /></a>
+    <a href="https://www.npmjs.com/package/@zshannon/streamstore"><img src="https://img.shields.io/npm/v/@zshannon/streamstore.svg" alt="npm version" /></a>
     <!-- Discord (chat) -->
     <a href="https://discord.gg/vTCs7kMkAf"><img src="https://img.shields.io/discord/1209937852528599092?logo=discord" /></a>
   </p>
@@ -39,11 +39,11 @@ See it in action on the [playground](https://s2.dev/playground).
 ## Install
 
 ```bash
-npm add @s2-dev/streamstore
+npm add @zshannon/streamstore
 # or
-yarn add @s2-dev/streamstore
+yarn add @zshannon/streamstore
 # or
-bun add @s2-dev/streamstore
+bun add @zshannon/streamstore
 ```
 
 ## Quick start
@@ -66,7 +66,7 @@ import {
 	AppendRecord,
 	S2,
 	S2Environment,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 
 const basinName = process.env.S2_BASIN ?? "my-existing-basin";
 const streamName = process.env.S2_STREAM ?? "my-new-stream";
@@ -301,11 +301,16 @@ for await (const record of readSession) {
 
 ## Client configuration
 
+This fork also supports PKI v2 credentials, native Biscuit grants, holder-signed
+delegation, HTTP Message Signatures and grant revocation. See the
+[PKI setup and published Biscuit dependency](packages/streamstore/README.md#pki-v2-authentication).
+
+
 ### Retries and append retry policy
 
 <!-- snippet:start client-config -->
 ```ts
-import { S2, S2Environment, S2Error } from "@s2-dev/streamstore";
+import { S2, S2Environment, S2Error } from "@zshannon/streamstore";
 
 const accessToken = process.env.S2_ACCESS_TOKEN;
 if (!accessToken) {

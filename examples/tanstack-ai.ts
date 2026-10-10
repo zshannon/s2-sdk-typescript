@@ -1,7 +1,7 @@
 import {
 	type Chunk,
 	createResumableChat,
-} from "@s2-dev/resumable-stream/tanstack-ai";
+} from "@zshannon/resumable-stream/tanstack-ai";
 
 type Importer = (specifier: string) => Promise<any>;
 const importOptional: Importer = (specifier) => import(specifier);

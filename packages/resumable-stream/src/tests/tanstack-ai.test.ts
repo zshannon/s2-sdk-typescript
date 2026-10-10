@@ -3,7 +3,7 @@ import type {
 	AppendInput,
 	AppendRecord as AppendRecordType,
 	ReadRecord,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import { describe, expect, it, vi } from "vitest";
 
 interface SubmitTicket {
@@ -76,7 +76,7 @@ class FakeStream {
 
 	async append(input: AppendInput): Promise<AppendAck> {
 		if (this.options.failFenceClaim) {
-			const { SeqNumMismatchError } = await import("@s2-dev/streamstore");
+			const { SeqNumMismatchError } = await import("@zshannon/streamstore");
 			throw new SeqNumMismatchError({
 				message: "stream already in use",
 				status: 412,
@@ -165,9 +165,9 @@ const { activeStreamRef } = vi.hoisted(() => ({
 	activeStreamRef: { current: null as FakeStream | null },
 }));
 
-vi.mock("@s2-dev/streamstore", async () => {
-	const actual = await vi.importActual<typeof import("@s2-dev/streamstore")>(
-		"@s2-dev/streamstore",
+vi.mock("@zshannon/streamstore", async () => {
+	const actual = await vi.importActual<typeof import("@zshannon/streamstore")>(
+		"@zshannon/streamstore",
 	);
 	class MockS2 {
 		basin() {

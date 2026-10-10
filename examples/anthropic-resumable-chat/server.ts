@@ -25,8 +25,8 @@ import type {
 	MessageParam,
 	RawMessageStreamEvent,
 } from "@anthropic-ai/sdk/resources/messages";
-import { AppendInput, AppendRecord, S2 } from "@s2-dev/streamstore";
-import { createResumableChat } from "@s2-dev/resumable-stream/anthropic";
+import { AppendInput, AppendRecord, S2 } from "@zshannon/streamstore";
+import { createResumableChat } from "@zshannon/resumable-stream/anthropic";
 
 const PORT = Number.parseInt(process.env.PORT || "3458", 10);
 const PUBLIC_DIR = join(dirname(import.meta.path), "public");

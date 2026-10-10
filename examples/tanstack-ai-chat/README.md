@@ -31,7 +31,7 @@ bun run example:tanstack-ai-chat
 ## Server
 
 ```ts
-import { createResumableChat } from "@s2-dev/resumable-stream/tanstack-ai";
+import { createResumableChat } from "@zshannon/resumable-stream/tanstack-ai";
 
 const chat = createResumableChat({
   accessToken: process.env.S2_ACCESS_TOKEN!,
@@ -88,7 +88,7 @@ export async function DELETE(request: Request) {
 ## Client
 
 ```tsx
-import { createConnection } from "@s2-dev/resumable-stream/tanstack-ai/client";
+import { createConnection } from "@zshannon/resumable-stream/tanstack-ai/client";
 import { useChat } from "@tanstack/ai-react";
 import { useMemo } from "react";
 

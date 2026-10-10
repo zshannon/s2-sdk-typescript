@@ -1,4 +1,8 @@
-import { AppendHeaders, AppendRecord, meteredBytes } from "@s2-dev/streamstore";
+import {
+	AppendHeaders,
+	AppendRecord,
+	meteredBytes,
+} from "@zshannon/streamstore";
 
 import {
 	DEDUPE_SEQ_HEADER_BYTES,

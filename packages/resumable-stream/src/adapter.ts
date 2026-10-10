@@ -7,7 +7,7 @@ import {
 	type S2EndpointsInit,
 	type S2Stream,
 	SeqNumMismatchError,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import {
 	appendFenceCommand,
 	createTerminalRecords,

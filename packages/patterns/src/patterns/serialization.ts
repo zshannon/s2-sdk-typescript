@@ -26,7 +26,7 @@ import {
 	BatchSubmitTicket,
 	ReadSession,
 	S2Error,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import { nanoid } from "nanoid";
 import { chunkBytes, MAX_CHUNK_BODY_BYTES } from "./chunking.js";
 import { DedupeFilter, injectDedupeHeaders } from "./dedupe.js";

@@ -169,7 +169,7 @@ export class S2STransport implements SessionTransport {
 	}
 
 	/** Open an HTTP/2 stream through the shared connection pool. */
-	private openH2Stream(headers: OutgoingHttpHeaders) {
+	private async openH2Stream(headers: OutgoingHttpHeaders) {
 		// Retries may fire after close(); re-attaching then would leak the pool entry.
 		if (this.closed) {
 			throw new S2Error({
@@ -184,6 +184,28 @@ export class S2STransport implements SessionTransport {
 				this.transportConfig.http2,
 			);
 			this.attached = true;
+		}
+		if (this.transportConfig.pki) {
+			const signed = new Headers();
+			for (const [name, value] of Object.entries(headers))
+				if (!name.startsWith(":") && value !== undefined) {
+					if (Array.isArray(value))
+						throw new S2Error({
+							message: "PKI requires single header values",
+							origin: "sdk",
+						});
+					signed.set(name, String(value));
+				}
+			const method = String(headers[":method"]);
+			this.transportConfig.pki.signHeaders({
+				body: method === "POST" ? "streaming" : new Uint8Array(),
+				headers: signed,
+				method,
+				url: this.endpointOrigin + String(headers[":path"]),
+			});
+			signed.forEach((value, name) => {
+				headers[name] = value;
+			});
 		}
 		return sharedConnectionPool.request(this.endpointOrigin, headers, {
 			connectionTimeoutMillis: this.transportConfig.connectionTimeoutMillis,
@@ -223,7 +245,7 @@ class S2SReadSession<Format extends "string" | "bytes" = "string">
 
 	static async create<Format extends "string" | "bytes" = "string">(
 		baseUrl: string,
-		bearerToken: Redacted.Redacted,
+		bearerToken: Redacted.Redacted | undefined,
 		streamName: string,
 		args: ReadArgs<Format> | undefined,
 		options: S2RequestOptions | undefined,
@@ -251,7 +273,7 @@ class S2SReadSession<Format extends "string" | "bytes" = "string">
 	private constructor(
 		private streamName: string,
 		private args: ReadArgs<Format> | undefined,
-		private authToken: Redacted.Redacted,
+		private authToken: Redacted.Redacted | undefined,
 		private url: URL,
 		private options: S2RequestOptions | undefined,
 		private openH2Stream: OpenH2Stream,
@@ -357,7 +379,9 @@ class S2SReadSession<Format extends "string" | "bytes" = "string">
 						":scheme": url.protocol.slice(0, -1),
 						":authority": url.host,
 						"user-agent": DEFAULT_USER_AGENT,
-						authorization: `Bearer ${Redacted.value(authToken)}`,
+						...(authToken
+							? { authorization: `Bearer ${Redacted.value(authToken)}` }
+							: {}),
 						accept: "application/protobuf",
 						"content-type": "s2s/proto",
 						...(acceptEncoding ? { "accept-encoding": acceptEncoding } : {}),
@@ -729,7 +753,7 @@ class S2SAppendSession implements TransportAppendSession {
 
 	static async create(
 		baseUrl: string,
-		bearerToken: Redacted.Redacted,
+		bearerToken: Redacted.Redacted | undefined,
 		streamName: string,
 		openH2Stream: OpenH2Stream,
 		basinName: string | undefined,
@@ -755,7 +779,7 @@ class S2SAppendSession implements TransportAppendSession {
 
 	private constructor(
 		private baseUrl: string,
-		private authToken: Redacted.Redacted,
+		private authToken: Redacted.Redacted | undefined,
 		private streamName: string,
 		private openH2Stream: OpenH2Stream,
 		private basinName: string | undefined,
@@ -781,7 +805,9 @@ class S2SAppendSession implements TransportAppendSession {
 			":scheme": url.protocol.slice(0, -1),
 			":authority": url.host,
 			"user-agent": DEFAULT_USER_AGENT,
-			authorization: `Bearer ${Redacted.value(this.authToken)}`,
+			...(this.authToken
+				? { authorization: `Bearer ${Redacted.value(this.authToken)}` }
+				: {}),
 			"content-type": "s2s/proto",
 			accept: "application/protobuf",
 			...(acceptEncoding ? { "accept-encoding": acceptEncoding } : {}),

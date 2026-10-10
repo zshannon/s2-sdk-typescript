@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
-import { S2, S2Environment, S2Error } from "@s2-dev/streamstore";
-import { serialization } from "@s2-dev/streamstore-patterns";
+import { S2, S2Environment, S2Error } from "@zshannon/streamstore";
+import { serialization } from "@zshannon/streamstore-patterns";
 import { streamText } from "ai";
 
 type AiStreamChunk = {

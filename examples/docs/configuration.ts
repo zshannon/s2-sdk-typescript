@@ -6,7 +6,7 @@
  * Requires: S2_ACCESS_TOKEN environment variable
  */
 
-import { S2, S2Environment } from "@s2-dev/streamstore";
+import { S2, S2Environment } from "@zshannon/streamstore";
 
 // Each snippet is wrapped in a block scope to allow independent `client` declarations
 {

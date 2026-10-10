@@ -1,23 +1,25 @@
 {
-  "name": "@s2-dev/streamstore",
+  "name": "@zshannon/streamstore",
   "version": "0.28.0",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/s2-streamstore/s2-sdk-typescript.git",
+    "url": "git+https://github.com/zshannon/s2-sdk-typescript.git",
     "directory": "packages/streamstore"
   },
   "homepage": "https://s2.dev",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "scripts": {
     "build": "rm -rf dist && bun ../../scripts/generate-version.ts && tsc --project tsconfig.build.esm.json && tsc --project tsconfig.build.cjs.json && bun ../../scripts/postbuild.ts && NPM_CONFIG_CACHE=\"${TMPDIR:-/tmp}/s2-sdk-typescript-npm-cache\" attw --pack",
     "test": "vitest --run",
     "check": "tsc --noEmit",
     "gen:version": "bun ../../scripts/generate-version.ts",
-    "example:browser": "bun examples/browser/serve.ts"
+    "example:browser": "bun examples/browser/serve.ts",
+    "prepublishOnly": "node ../../scripts/check-release.mjs"
   },
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -33,6 +35,16 @@
         "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
       }
+    },
+    "./pki": {
+      "import": {
+        "types": "./dist/esm/pki/index.d.ts",
+        "default": "./dist/esm/pki/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/pki/index.d.ts",
+        "default": "./dist/cjs/pki/index.js"
+      }
     }
   },
   "files": [
@@ -41,7 +53,18 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@flickfyi/biscuit": "0.0.2",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
     "@protobuf-ts/runtime": "^2.11.1",
+    "@scure/base": "2.4.0",
     "debug": "^4.4.3"
+  },
+  "typesVersions": {
+    "*": {
+      "pki": [
+        "./dist/cjs/pki/index.d.ts"
+      ]
+    }
   }
 }

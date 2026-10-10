@@ -1,4 +1,4 @@
-# @s2-dev/streamstore
+# @zshannon/streamstore
 
 TypeScript SDK for [S2](https://s2.dev), a serverless data store for streams.
 
@@ -7,11 +7,11 @@ This package is the core client for S2's [REST API](https://s2.dev/docs/rest/pro
 ## Installation
 
 ```bash
-npm add @s2-dev/streamstore
+npm add @zshannon/streamstore
 # or
-yarn add @s2-dev/streamstore
+yarn add @zshannon/streamstore
 # or
-bun add @s2-dev/streamstore
+bun add @zshannon/streamstore
 ```
 
 ## Quick start
@@ -26,7 +26,7 @@ import {
 	AppendRecord,
 	S2,
 	S2Environment,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 
 const basinName = process.env.S2_BASIN ?? "my-existing-basin";
 const streamName = process.env.S2_STREAM ?? "my-new-stream";
@@ -91,3 +91,93 @@ for (const record of batch.records) {
 
 - Full SDK overview and additional examples: see the root repo README at <https://github.com/s2-streamstore/s2-sdk-typescript>.
 - S2 service docs: <https://s2.dev/docs>.
+
+## PKI v2 authentication
+
+The PKI entry supports Node.js 20.19+ (including CommonJS), Bun, and browser
+bundlers. Node 24 ESM/CommonJS and browser bundles are verified locally.
+
+For an S2 Lite server configured with `S2LITE_PKI_ISSUER` and
+`S2LITE_PKI_AUDIENCE`, import credentials from `@zshannon/streamstore/pki`:
+
+```ts
+import { S2 } from "@zshannon/streamstore";
+import { ClientKey, Grant, PkiCredentials } from "@zshannon/streamstore/pki";
+
+// The grant document is compatible with `s2 auth pki issue` / `delegate`.
+const grant = Grant.fromJSON({ issuer: issuerPublicKey, grant: biscuitBase64url });
+const key = ClientKey.fromBase58(clientPrivateKey);
+const s2 = new S2({ pki: new PkiCredentials(key, grant) });
+```
+
+PKI replaces the access token entirely. Endpoints default to the grant's exact
+HTTP audience; explicit endpoints must share that origin. Every request attempt
+and session opening gets a fresh RFC 9421 P-256 proof. Unary proofs include a
+SHA-256 digest of the serialized body; HTTP/2 append sessions sign their opening
+in streaming mode. Redirects are rejected. The server evaluates cumulative native
+Biscuit facts and checks, replay state, revocation and session leases.
+
+Create and delegate grants locally:
+
+```ts
+import { delegateGrant, issueGrant } from "@zshannon/streamstore/pki";
+
+const grant = issueGrant({
+  audience: "http://localhost:8080",
+  expiresAt: Math.floor(Date.now() / 1000) + 3600,
+  holder: alice.publicKey,
+  issuerKey: issuer,
+  scope: {
+    basins: { kind: "exact", value: "my-basin" },
+    operations: ["Append", "Read"],
+    streams: { kind: "prefix", value: "events/" },
+  },
+});
+const bobGrant = delegateGrant({
+  delegatorKey: alice,
+  expiresAt: grant.expiresAt,
+  holder: bob.publicKey,
+  parent: grant,
+  scope: { ...grant.scope, operations: ["Read"] },
+});
+await s2.revokeGrant(bobGrant.toBase64());
+```
+
+Here `issuer`, `alice` and `bob` are `ClientKey` instances. Delegation requires the
+current holder's private key and can only narrow permissions, resource scopes
+and expiry. `restrictGrant` uses the same signed delegation with the same holder.
+`ClientKey.generate()` creates keys; explicit `toBase58()` exports private keys.
+`Grant.toJSON()` exports the CLI-compatible grant document. Store private keys
+securely. `accessTokens.list/issue/revoke` are unavailable in PKI mode.
+
+The profile is v2 only. Native `pki_*` facts and five mandatory checks live in each
+signed block; there is no JSON policy inside the Biscuit. The SDK verifies the
+chain and supports the crate's bounded scalar custom checks, while conservatively
+rejecting block-level global trust scopes. SDK admission checks the decoded AST;
+the server additionally applies raw wire/schema and interned-symbol bounds.
+Authorization remains on the server.
+
+### Published Biscuit dependency
+
+The generic `@flickfyi/biscuit@0.0.2` package is installed from npm. Its root export
+supplies Biscuit cryptography and serialization; S2's profile and HTTP signatures
+belong to this SDK. The SDK packages remain local workspaces for development.
+
+```sh
+bun install --frozen-lockfile
+```
+
+The published package includes two interoperability corrections: verified block
+signing-algorithm metadata for stable revocation IDs, and schema version 6 for
+authority, attenuation and third-party blocks (including native Reject checks
+and null terms). The Bun and npm lockfiles pin the registry package, so clean CI
+runners and npm consumers do not need a Crayon checkout or a global Bun link.
+
+Run focused regressions against the actual Rust CLI and an isolated in-memory
+Lite server with:
+
+```sh
+S2_PKI_RUST_BIN=/path/to/s2 bun run test:core -- \
+  src/tests/pki-v2.test.ts src/tests/pki-v2-rust.integration.test.ts \
+  src/tests/pki-biscuit-link.test.ts
+```

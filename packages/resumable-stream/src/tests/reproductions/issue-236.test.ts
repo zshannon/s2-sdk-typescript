@@ -1,5 +1,5 @@
-import type { S2 } from "@s2-dev/streamstore";
-import { AppendRecord, FencingTokenMismatchError } from "@s2-dev/streamstore";
+import type { S2 } from "@zshannon/streamstore";
+import { AppendRecord, FencingTokenMismatchError } from "@zshannon/streamstore";
 import { describe, expect, it } from "vitest";
 import { persistToS2 } from "../../protocol.js";
 

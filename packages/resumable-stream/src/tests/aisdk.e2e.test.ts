@@ -3,7 +3,7 @@ import {
 	AppendRecord,
 	S2,
 	S2Environment,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import type { UIMessageChunk } from "ai";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createResumableChat } from "../aisdk/index.js";
