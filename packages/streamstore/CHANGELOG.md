@@ -1,5 +1,11 @@
 # @s2-dev/streamstore
 
+## 0.29.0
+
+### Minor Changes
+
+- dc97417: Publish the fork under the public @zshannon scope. Add Rust-compatible PKI v2 credentials, native Biscuit grants, holder-signed delegation and HTTP message signatures to the core SDK.
+
 ## 0.28.0
 
 ### Minor Changes
