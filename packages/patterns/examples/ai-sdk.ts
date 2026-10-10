@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { S2 } from "@s2-dev/streamstore";
+import { S2 } from "@zshannon/streamstore";
 import { streamText } from "ai";
 import createDebug from "debug";
 import {

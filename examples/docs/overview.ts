@@ -7,7 +7,7 @@
  */
 
 // ANCHOR: create-client
-import { S2 } from "@s2-dev/streamstore";
+import { S2 } from "@zshannon/streamstore";
 
 const client = new S2({
 	accessToken: process.env.S2_ACCESS_TOKEN!,

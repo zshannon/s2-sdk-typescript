@@ -4,7 +4,7 @@ import {
 	AppendRecord,
 	S2,
 	S2Environment,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 
 const basinName = process.env.S2_BASIN ?? "my-existing-basin";
 const streamName = process.env.S2_STREAM ?? "my-new-stream";

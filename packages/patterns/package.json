@@ -1,5 +1,5 @@
 {
-  "name": "@s2-dev/streamstore-patterns",
+  "name": "@zshannon/streamstore-patterns",
   "version": "2.1.4",
   "description": "Add-on patterns built on top of the S2 StreamStore TypeScript SDK.",
   "license": "MIT",
@@ -7,11 +7,12 @@
   "homepage": "https://s2.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/s2-streamstore/s2-sdk-typescript.git",
+    "url": "git+https://github.com/zshannon/s2-sdk-typescript.git",
     "directory": "packages/patterns"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -30,11 +31,12 @@
     "check": "tsc --noEmit",
     "format": "biome format --write",
     "lint": "biome check",
-    "test": "vitest --run"
+    "test": "vitest --run",
+    "prepublishOnly": "node ../../scripts/check-release.mjs"
   },
   "sideEffects": false,
   "peerDependencies": {
-    "@s2-dev/streamstore": ">=0.21.0"
+    "@zshannon/streamstore": ">=0.21.0"
   },
   "devDependencies": {
     "@ai-sdk/openai": "^2.0.68",

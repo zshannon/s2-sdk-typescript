@@ -53,7 +53,7 @@ The wire format (`text/event-stream` carrying `UIMessageChunk`s) matches the AI 
 
 ```ts
 // lib/s2.ts (server: create once)
-import { createResumableChat } from "@s2-dev/resumable-stream/aisdk";
+import { createResumableChat } from "@zshannon/resumable-stream/aisdk";
 
 export const chat = createResumableChat({
   accessToken: process.env.S2_ACCESS_TOKEN!,

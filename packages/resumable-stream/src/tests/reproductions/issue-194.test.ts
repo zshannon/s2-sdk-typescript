@@ -13,9 +13,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
  */
 
 // Mock S2 so readSession throws immediately (simulating 404/403)
-vi.mock("@s2-dev/streamstore", async () => {
-	const actual = await vi.importActual<typeof import("@s2-dev/streamstore")>(
-		"@s2-dev/streamstore",
+vi.mock("@zshannon/streamstore", async () => {
+	const actual = await vi.importActual<typeof import("@zshannon/streamstore")>(
+		"@zshannon/streamstore",
 	);
 	class MockS2 {
 		basin() {

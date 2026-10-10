@@ -4,7 +4,7 @@ import {
 	meteredBytes,
 	type ReadHeaders,
 	S2Error,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 
 import {
 	DEDUPE_SEQ_HEADER,

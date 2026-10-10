@@ -1,7 +1,7 @@
 import {
 	FencingTokenMismatchError,
 	RangeNotSatisfiableError,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 /**
@@ -14,9 +14,9 @@ const mock = vi.hoisted(() => ({
 	handle: {} as Record<string, unknown>,
 }));
 
-vi.mock("@s2-dev/streamstore", async () => {
-	const actual = await vi.importActual<typeof import("@s2-dev/streamstore")>(
-		"@s2-dev/streamstore",
+vi.mock("@zshannon/streamstore", async () => {
+	const actual = await vi.importActual<typeof import("@zshannon/streamstore")>(
+		"@zshannon/streamstore",
 	);
 	class MockS2 {
 		basin() {

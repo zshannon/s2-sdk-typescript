@@ -1,15 +1,15 @@
 import {
-	type Chunk,
-	createResumableChat,
-} from "@s2-dev/resumable-stream/tanstack-ai";
-import { S2, S2Error } from "@s2-dev/streamstore";
-import {
 	convertMessagesToModelMessages,
 	type ModelMessage,
 	type StreamChunk,
 	StreamProcessor,
 	type UIMessage,
 } from "@tanstack/ai";
+import {
+	type Chunk,
+	createResumableChat,
+} from "@zshannon/resumable-stream/tanstack-ai";
+import { S2, S2Error } from "@zshannon/streamstore";
 
 const STREAM_PREFIX =
 	process.env.S2_TANSTACK_CHAT_STREAM_PREFIX || "tanstack-ai-chat";

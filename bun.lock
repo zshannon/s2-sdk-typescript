@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "@s2-dev/streamstore",
+      "name": "@zshannon/streamstore",
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.2",
         "@biomejs/biome": "2.2.5",
@@ -34,7 +34,7 @@
       },
     },
     "packages/patterns": {
-      "name": "@s2-dev/streamstore-patterns",
+      "name": "@zshannon/streamstore-patterns",
       "version": "2.1.4",
       "dependencies": {
         "nanoid": "^3.3.11",
@@ -47,11 +47,11 @@
         "tsx": "^4.19.2",
       },
       "peerDependencies": {
-        "@s2-dev/streamstore": ">=0.18.1",
+        "@zshannon/streamstore": ">=0.18.1",
       },
     },
     "packages/resumable-stream": {
-      "name": "@s2-dev/resumable-stream",
+      "name": "@zshannon/resumable-stream",
       "version": "3.0.2",
       "dependencies": {
         "eventsource-parser": "^3.0.8",
@@ -62,7 +62,7 @@
       },
       "peerDependencies": {
         "@anthropic-ai/sdk": "*",
-        "@s2-dev/streamstore": ">=0.21.0",
+        "@zshannon/streamstore": ">=0.21.0",
         "@tanstack/ai": "*",
         "@tanstack/ai-client": "*",
         "ai": ">=5.0.0",
@@ -75,7 +75,7 @@
       ],
     },
     "packages/streamstore": {
-      "name": "@s2-dev/streamstore",
+      "name": "@zshannon/streamstore",
       "version": "0.28.0",
       "dependencies": {
         "@flickfyi/biscuit": "link:@flickfyi/biscuit",
@@ -410,11 +410,11 @@
 
     "@rollup/rollup-win32-x64-msvc": ["@rollup/rollup-win32-x64-msvc@4.52.5", "", { "os": "win32", "cpu": "x64" }, "sha512-TAcgQh2sSkykPRWLrdyy2AiceMckNf5loITqXxFI5VuQjS5tSuw3WlwdN8qv8vzjLAUTvYaH/mVjSFpbkFbpTg=="],
 
-    "@s2-dev/resumable-stream": ["@s2-dev/resumable-stream@workspace:packages/resumable-stream"],
+    "@zshannon/resumable-stream": ["@zshannon/resumable-stream@workspace:packages/resumable-stream"],
 
-    "@s2-dev/streamstore": ["@s2-dev/streamstore@workspace:packages/streamstore"],
+    "@zshannon/streamstore": ["@zshannon/streamstore@workspace:packages/streamstore"],
 
-    "@s2-dev/streamstore-patterns": ["@s2-dev/streamstore-patterns@workspace:packages/patterns"],
+    "@zshannon/streamstore-patterns": ["@zshannon/streamstore-patterns@workspace:packages/patterns"],
 
     "@scure/base": ["@scure/base@2.4.0", "", {}, "sha512-thZ1TuJwFwBblOhgsjDKvvGirBxNp+wSvY/DR6tJBJOTDhdAAcHJ8Vbr2eFnqaxeca4+t0i9KBf+uHYGWwZORg=="],
 
@@ -1152,7 +1152,7 @@
 
     "@redocly/openapi-core/minimatch": ["minimatch@5.1.6", "", { "dependencies": { "brace-expansion": "^2.0.1" } }, "sha512-lKwV/1brpG6mBUFHtb7NUmtABCb2WZZmm2wNiOA5hAb8VdCS4B3dtMWyvcoViccwAW/COERjXLt0zP1zXUN26g=="],
 
-    "@s2-dev/streamstore-patterns/ai": ["ai@5.0.96", "", { "dependencies": { "@ai-sdk/gateway": "2.0.11", "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.17", "@opentelemetry/api": "1.9.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-eSf9V0fKpPglCGb7gib7HoWmgpUbdlm6FAgfvY/lMNfIxKx8WWAfX0RenVqTODVq3OISKcxSs2Gsh+XzgYNm5g=="],
+    "@zshannon/streamstore-patterns/ai": ["ai@5.0.96", "", { "dependencies": { "@ai-sdk/gateway": "2.0.11", "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.17", "@opentelemetry/api": "1.9.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-eSf9V0fKpPglCGb7gib7HoWmgpUbdlm6FAgfvY/lMNfIxKx8WWAfX0RenVqTODVq3OISKcxSs2Gsh+XzgYNm5g=="],
 
     "@tanstack/router-generator/prettier": ["prettier@3.8.3", "", { "bin": { "prettier": "bin/prettier.cjs" } }, "sha512-7igPTM53cGHMW8xWuVTydi2KO233VFiTNyF5hLJqpilHfmn8C8gPf+PS7dUT64YcXFbiMGZxS9pCSxL/Dxm/Jw=="],
 
@@ -1214,11 +1214,11 @@
 
     "@changesets/parse/js-yaml/argparse": ["argparse@1.0.10", "", { "dependencies": { "sprintf-js": "~1.0.2" } }, "sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg=="],
 
-    "@s2-dev/streamstore-patterns/ai/@ai-sdk/gateway": ["@ai-sdk/gateway@2.0.11", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.17", "@vercel/oidc": "3.0.3" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-B0Vt2Xv88Lo9rg861Oyzq/SdTmT4LiqdjkpOxpSPpNk8Ih5TXTgyDAsV/qW14N6asPdK1YI5PosFLnVzfK5LrA=="],
+    "@zshannon/streamstore-patterns/ai/@ai-sdk/gateway": ["@ai-sdk/gateway@2.0.11", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.17", "@vercel/oidc": "3.0.3" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-B0Vt2Xv88Lo9rg861Oyzq/SdTmT4LiqdjkpOxpSPpNk8Ih5TXTgyDAsV/qW14N6asPdK1YI5PosFLnVzfK5LrA=="],
 
-    "@s2-dev/streamstore-patterns/ai/@ai-sdk/provider": ["@ai-sdk/provider@2.0.0", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-6o7Y2SeO9vFKB8lArHXehNuusnpddKPk7xqL7T2/b+OvXMRIXUO1rR4wcv1hAFUAT9avGZshty3Wlua/XA7TvA=="],
+    "@zshannon/streamstore-patterns/ai/@ai-sdk/provider": ["@ai-sdk/provider@2.0.0", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-6o7Y2SeO9vFKB8lArHXehNuusnpddKPk7xqL7T2/b+OvXMRIXUO1rR4wcv1hAFUAT9avGZshty3Wlua/XA7TvA=="],
 
-    "@s2-dev/streamstore-patterns/ai/@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@3.0.17", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@standard-schema/spec": "^1.0.0", "eventsource-parser": "^3.0.6" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-TR3Gs4I3Tym4Ll+EPdzRdvo/rc8Js6c4nVhFLuvGLX/Y4V9ZcQMa/HTiYsHEgmYrf1zVi6Q145UEZUfleOwOjw=="],
+    "@zshannon/streamstore-patterns/ai/@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@3.0.17", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@standard-schema/spec": "^1.0.0", "eventsource-parser": "^3.0.6" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-TR3Gs4I3Tym4Ll+EPdzRdvo/rc8Js6c4nVhFLuvGLX/Y4V9ZcQMa/HTiYsHEgmYrf1zVi6Q145UEZUfleOwOjw=="],
 
     "@tanstack/router-plugin/chokidar/readdirp": ["readdirp@3.6.0", "", { "dependencies": { "picomatch": "^2.2.1" } }, "sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA=="],
 
@@ -1230,9 +1230,9 @@
 
     "vitest/vite/postcss": ["postcss@8.5.6", "", { "dependencies": { "nanoid": "^3.3.11", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg=="],
 
-    "@s2-dev/streamstore-patterns/ai/@ai-sdk/gateway/@vercel/oidc": ["@vercel/oidc@3.0.3", "", {}, "sha512-yNEQvPcVrK9sIe637+I0jD6leluPxzwJKx/Haw6F4H77CdDsszUn5V3o96LPziXkSNE2B83+Z3mjqGKBK/R6Gg=="],
+    "@zshannon/streamstore-patterns/ai/@ai-sdk/gateway/@vercel/oidc": ["@vercel/oidc@3.0.3", "", {}, "sha512-yNEQvPcVrK9sIe637+I0jD6leluPxzwJKx/Haw6F4H77CdDsszUn5V3o96LPziXkSNE2B83+Z3mjqGKBK/R6Gg=="],
 
-    "@s2-dev/streamstore-patterns/ai/@ai-sdk/provider-utils/eventsource-parser": ["eventsource-parser@3.0.6", "", {}, "sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg=="],
+    "@zshannon/streamstore-patterns/ai/@ai-sdk/provider-utils/eventsource-parser": ["eventsource-parser@3.0.6", "", {}, "sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg=="],
 
     "@tanstack/router-plugin/chokidar/readdirp/picomatch": ["picomatch@2.3.1", "", {}, "sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA=="],
   }

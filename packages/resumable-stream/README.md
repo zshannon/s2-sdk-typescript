@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>@s2-dev/resumable-stream</h1>
+  <h1>@zshannon/resumable-stream</h1>
   <p>Resumable streams backed by S2.</p>
 
   <p>
@@ -22,17 +22,17 @@ The incoming stream is batched and the batch size can be changed by setting `S2_
 
 The package exposes these entry points:
 
-- **`@s2-dev/resumable-stream`**: a generic `ReadableStream<string>` resumer (`createResumableStreamContext`). Use for plain text streams.
-- **`@s2-dev/resumable-stream/aisdk`**: a thin helper over `UIMessageChunk` streams for the AI SDK's `useChat`. See the [AI SDK section](#ai-sdk) below.
-- **`@s2-dev/resumable-stream/anthropic`**: persists and replays raw `client.messages.stream(...)` events. See the [Anthropic section](#anthropic) below.
-- **`@s2-dev/resumable-stream/anthropic/client`**: browser helpers for subscribing to and reconnecting against the replay.
-- **`@s2-dev/resumable-stream/tanstack-ai`**: a thin helper over TanStack AI stream chunks. See the [TanStack AI section](#tanstack-ai) below.
-- **`@s2-dev/resumable-stream/tanstack-ai/client`**: a TanStack AI `useChat` connection helper.
+- **`@zshannon/resumable-stream`**: a generic `ReadableStream<string>` resumer (`createResumableStreamContext`). Use for plain text streams.
+- **`@zshannon/resumable-stream/aisdk`**: a thin helper over `UIMessageChunk` streams for the AI SDK's `useChat`. See the [AI SDK section](#ai-sdk) below.
+- **`@zshannon/resumable-stream/anthropic`**: persists and replays raw `client.messages.stream(...)` events. See the [Anthropic section](#anthropic) below.
+- **`@zshannon/resumable-stream/anthropic/client`**: browser helpers for subscribing to and reconnecting against the replay.
+- **`@zshannon/resumable-stream/tanstack-ai`**: a thin helper over TanStack AI stream chunks. See the [TanStack AI section](#tanstack-ai) below.
+- **`@zshannon/resumable-stream/tanstack-ai/client`**: a TanStack AI `useChat` connection helper.
 
 ### Generic resumer
 
 ```ts
-import { createResumableStreamContext } from "@s2-dev/resumable-stream";
+import { createResumableStreamContext } from "@zshannon/resumable-stream";
 import { after } from "next/server";
 
 const streamContext = createResumableStreamContext({
@@ -99,7 +99,7 @@ Demo (Bun server + vanilla-JS client): [`examples/ai-sdk-resumable-chat`](../../
 
 ```ts
 // lib/s2.ts
-import { createResumableChat } from "@s2-dev/resumable-stream/aisdk";
+import { createResumableChat } from "@zshannon/resumable-stream/aisdk";
 
 export const chat = createResumableChat({
   accessToken: process.env.S2_ACCESS_TOKEN!,
@@ -174,7 +174,7 @@ For chat apps, use `mode: "session"` and read responses from a replay route:
 
 ```ts
 import Anthropic from "@anthropic-ai/sdk";
-import { createResumableChat } from "@s2-dev/resumable-stream/anthropic";
+import { createResumableChat } from "@zshannon/resumable-stream/anthropic";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -214,7 +214,7 @@ The browser helper is a single async generator. POSTs are plain `fetch`;
 `?from=<seqNum>` on body drop:
 
 ```ts
-import { subscribe } from "@s2-dev/resumable-stream/anthropic/client";
+import { subscribe } from "@zshannon/resumable-stream/anthropic/client";
 
 const ac = new AbortController();
 
@@ -282,7 +282,7 @@ them as SSE.
 ```ts
 import { chat as tanstackChat, convertMessagesToModelMessages } from "@tanstack/ai";
 import { openaiText } from "@tanstack/ai-openai";
-import { createResumableChat } from "@s2-dev/resumable-stream/tanstack-ai";
+import { createResumableChat } from "@zshannon/resumable-stream/tanstack-ai";
 
 const chat = createResumableChat({
   accessToken: process.env.S2_ACCESS_TOKEN!,
@@ -321,7 +321,7 @@ TanStack `useChat`. It tracks the last seen SSE `id:` internally, so repeated
 state to app code.
 
 ```tsx
-import { createConnection } from "@s2-dev/resumable-stream/tanstack-ai/client";
+import { createConnection } from "@zshannon/resumable-stream/tanstack-ai/client";
 import { useChat } from "@tanstack/ai-react";
 
 const connection = createConnection({

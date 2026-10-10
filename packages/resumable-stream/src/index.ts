@@ -2,14 +2,14 @@ import type {
 	ReadBatch,
 	S2Endpoints,
 	S2EndpointsInit,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import {
 	AppendRecord,
 	FencingTokenMismatchError,
 	RangeNotSatisfiableError,
 	S2,
 	S2Environment,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import {
 	appendFenceCommand,
 	isFenceRecord,

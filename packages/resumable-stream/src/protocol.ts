@@ -8,7 +8,7 @@ import {
 	S2,
 	type S2Stream,
 	SeqNumMismatchError,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 
 export function isFenceRecord(
 	record: Pick<ReadRecord<"string">, "headers">,

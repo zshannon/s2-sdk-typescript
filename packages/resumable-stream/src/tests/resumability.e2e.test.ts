@@ -1,4 +1,4 @@
-import { S2, S2Environment } from "@s2-dev/streamstore";
+import { S2, S2Environment } from "@zshannon/streamstore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createResumableStreamContext } from "../index.js";
 

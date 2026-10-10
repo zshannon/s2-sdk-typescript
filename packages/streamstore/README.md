@@ -1,4 +1,4 @@
-# @s2-dev/streamstore
+# @zshannon/streamstore
 
 TypeScript SDK for [S2](https://s2.dev), a serverless data store for streams.
 
@@ -7,11 +7,11 @@ This package is the core client for S2's [REST API](https://s2.dev/docs/rest/pro
 ## Installation
 
 ```bash
-npm add @s2-dev/streamstore
+npm add @zshannon/streamstore
 # or
-yarn add @s2-dev/streamstore
+yarn add @zshannon/streamstore
 # or
-bun add @s2-dev/streamstore
+bun add @zshannon/streamstore
 ```
 
 ## Quick start
@@ -26,7 +26,7 @@ import {
 	AppendRecord,
 	S2,
 	S2Environment,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 
 const basinName = process.env.S2_BASIN ?? "my-existing-basin";
 const streamName = process.env.S2_STREAM ?? "my-new-stream";
@@ -98,11 +98,11 @@ The PKI entry supports Node.js 20.19+ (including CommonJS), Bun, and browser
 bundlers. Node 24 ESM/CommonJS and browser bundles are verified locally.
 
 For an S2 Lite server configured with `S2LITE_PKI_ISSUER` and
-`S2LITE_PKI_AUDIENCE`, import credentials from `@s2-dev/streamstore/pki`:
+`S2LITE_PKI_AUDIENCE`, import credentials from `@zshannon/streamstore/pki`:
 
 ```ts
-import { S2 } from "@s2-dev/streamstore";
-import { ClientKey, Grant, PkiCredentials } from "@s2-dev/streamstore/pki";
+import { S2 } from "@zshannon/streamstore";
+import { ClientKey, Grant, PkiCredentials } from "@zshannon/streamstore/pki";
 
 // The grant document is compatible with `s2 auth pki issue` / `delegate`.
 const grant = Grant.fromJSON({ issuer: issuerPublicKey, grant: biscuitBase64url });
@@ -120,7 +120,7 @@ Biscuit facts and checks, replay state, revocation and session leases.
 Create and delegate grants locally:
 
 ```ts
-import { delegateGrant, issueGrant } from "@s2-dev/streamstore/pki";
+import { delegateGrant, issueGrant } from "@zshannon/streamstore/pki";
 
 const grant = issueGrant({
   audience: "http://localhost:8080",
@@ -172,8 +172,9 @@ bun install
 ```
 
 The linked package includes two interoperability corrections: verified block
-signing-algorithm metadata for stable revocation IDs, and schema version 5 for
-third-party blocks. Once published with these corrections, replace the
+signing-algorithm metadata for stable revocation IDs, and schema version 6 for
+authority, attenuation and third-party blocks (including native Reject checks
+and null terms). Once published with these corrections, replace the
 `link:@flickfyi/biscuit` dependency with its published version and regenerate the
 package manager lockfiles before publishing this SDK. The current link uses Bun;
 the upstream npm/Deno lockfiles do not represent these development dependencies.

@@ -2,11 +2,11 @@ import {
 	type AppendAck,
 	AppendInput,
 	BatchSubmitTicket,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import type {
 	AcksStream,
 	AppendSession,
-} from "@s2-dev/streamstore/lib/stream/types";
+} from "@zshannon/streamstore/lib/stream/types";
 import { describe, expect, it } from "vitest";
 import { SerializingAppendSession } from "../../patterns/serialization.js";
 

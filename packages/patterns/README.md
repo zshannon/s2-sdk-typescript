@@ -1,18 +1,18 @@
 # s2-typescript-patterns
 
-Add-on patterns and higher-level helpers built on top of the [`@s2-dev/streamstore` TypeScript SDK](https://github.com/s2-streamstore/s2-sdk-typescript).
+Add-on patterns and higher-level helpers built on top of the [`@zshannon/streamstore` TypeScript SDK](https://github.com/s2-streamstore/s2-sdk-typescript).
 
 ## Installation
 
 ```bash
-npm install @s2-dev/streamstore-patterns @s2-dev/streamstore
-# or: pnpm add @s2-dev/streamstore-patterns @s2-dev/streamstore
-# or: yarn add @s2-dev/streamstore-patterns @s2-dev/streamstore
+npm install @zshannon/streamstore-patterns @zshannon/streamstore
+# or: pnpm add @zshannon/streamstore-patterns @zshannon/streamstore
+# or: yarn add @zshannon/streamstore-patterns @zshannon/streamstore
 ```
 
 ## Structure
 
-- `src/patterns`: Reusable patterns/add-ons that wrap or compose types from `@s2-dev/streamstore`.
+- `src/patterns`: Reusable patterns/add-ons that wrap or compose types from `@zshannon/streamstore`.
 - `src/index.ts`: Package entrypoint that re-exports everything from `src/patterns`.
 - `examples`: Small, focused usage examples that can combine any of the patterns.
 
@@ -39,7 +39,7 @@ S2_STREAM="agent/session/0001" npx tsx packages/patterns/examples/ai-sdk.ts
 
 ## Typed append/read sessions 
 
-The main `@s2-dev/streamstore` SDK provides idiomatic access to the core S2 APIs, as well as functionality like retries.
+The main `@zshannon/streamstore` SDK provides idiomatic access to the core S2 APIs, as well as functionality like retries.
 
 This package, on the other hand, provides some basic implementations of advanced functionality that can be built off of the core SDK. These may be useful out of the box, or could serve simply as examples for building a system on top of S2. 
 
@@ -62,7 +62,7 @@ The `SerializingAppendSession<Message>` and `DeserializingReadSession<Message>` 
 
 **Read path (consume):**
 
-- S2 records → `ReadSession<"bytes">` – provided by the `@s2-dev/streamstore` SDK.
+- S2 records → `ReadSession<"bytes">` – provided by the `@zshannon/streamstore` SDK.
 - Records → filtered records – `DedupeFilter` drops duplicates based on the pair (`_writer_id`, `_dedupe_seq`).
 - Filtered records → `CompletedFrame` – `FrameAssembler` uses `_frame_bytes` / `_frame_records` to reassemble full payloads.
 - `CompletedFrame.payload` (`Uint8Array`) → `Message` – you supply a deserializer.
@@ -73,8 +73,8 @@ All of these are grouped under the `serialization` namespace.
 ## Usage (library)
 
 ```ts
-import { serialization } from "@s2-dev/streamstore-patterns";
-import { S2 } from "@s2-dev/streamstore";
+import { serialization } from "@zshannon/streamstore-patterns";
+import { S2 } from "@zshannon/streamstore";
 // Serializer/deserializer (bring your own; MessagePack shown here)
 import { encode, decode } from "@msgpack/msgpack";
 

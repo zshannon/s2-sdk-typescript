@@ -23,7 +23,7 @@ import {
 	S2,
 	S2Environment,
 	S2Error,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import { type ModelMessage, streamText } from "ai";
 
 // ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@ import {
 	RangeNotSatisfiableError,
 	S2Error,
 	type S2Stream,
-} from "@s2-dev/streamstore";
+} from "@zshannon/streamstore";
 import {
 	appendFenceCommand,
 	appendTrimCommand,

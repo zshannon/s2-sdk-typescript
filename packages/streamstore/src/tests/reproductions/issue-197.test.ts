@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
  * so it is erased from the emitted JavaScript. This causes a runtime
  * SyntaxError when consumers try to import it as a value:
  *
- *   import { BatchSubmitTicket } from "@s2-dev/streamstore";
+ *   import { BatchSubmitTicket } from "@zshannon/streamstore";
  *   // => SyntaxError: does not provide an export named 'BatchSubmitTicket'
  *
  * The fix moves BatchSubmitTicket from the `export type { ... }` block to a

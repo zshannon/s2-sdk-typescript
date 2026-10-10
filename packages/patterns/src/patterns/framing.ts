@@ -1,5 +1,5 @@
-import type { AppendHeaders, ReadHeaders } from "@s2-dev/streamstore";
-import { AppendRecord, S2Error } from "@s2-dev/streamstore";
+import type { AppendHeaders, ReadHeaders } from "@zshannon/streamstore";
+import { AppendRecord, S2Error } from "@zshannon/streamstore";
 
 import {
 	FRAME_BYTES_HEADER_BYTES,

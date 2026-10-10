@@ -1,5 +1,5 @@
 {
-  "name": "@s2-dev/resumable-stream",
+  "name": "@zshannon/resumable-stream",
   "version": "3.0.2",
   "description": "Resumable streams based on s2.dev, inspired by Vercel's implementation.",
   "license": "MIT",
@@ -7,11 +7,12 @@
   "homepage": "https://s2.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/s2-streamstore/s2-sdk-typescript.git",
+    "url": "git+https://github.com/zshannon/s2-sdk-typescript.git",
     "directory": "packages/resumable-stream"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -50,12 +51,13 @@
     "check": "tsc --noEmit",
     "format": "biome format --write",
     "lint": "biome check",
-    "test": "vitest --run"
+    "test": "vitest --run",
+    "prepublishOnly": "node ../../scripts/check-release.mjs"
   },
   "sideEffects": false,
   "peerDependencies": {
     "@anthropic-ai/sdk": "*",
-    "@s2-dev/streamstore": ">=0.21.0",
+    "@zshannon/streamstore": ">=0.21.0",
     "@tanstack/ai": "*",
     "@tanstack/ai-client": "*",
     "ai": ">=5.0.0"
