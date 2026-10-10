@@ -1,5 +1,11 @@
 # @s2-dev/resumable-stream
 
+## 3.0.4
+
+### Patch Changes
+
+- Validate the configured GitHub trusted publishers with a workflow publication. No runtime behavior changes.
+
 ## 3.0.3
 
 ### Patch Changes

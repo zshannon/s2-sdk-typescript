@@ -1,5 +1,11 @@
 # @s2-dev/streamstore-patterns
 
+## 2.1.6
+
+### Patch Changes
+
+- Validate the configured GitHub trusted publishers with a workflow publication. No runtime behavior changes.
+
 ## 2.1.5
 
 ### Patch Changes
