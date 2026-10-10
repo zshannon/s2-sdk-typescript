@@ -35,7 +35,7 @@
     },
     "packages/patterns": {
       "name": "@zshannon/streamstore-patterns",
-      "version": "2.1.4",
+      "version": "2.1.6",
       "dependencies": {
         "nanoid": "^3.3.11",
       },
@@ -52,7 +52,7 @@
     },
     "packages/resumable-stream": {
       "name": "@zshannon/resumable-stream",
-      "version": "3.0.2",
+      "version": "3.0.4",
       "dependencies": {
         "eventsource-parser": "^3.0.8",
       },
@@ -76,7 +76,7 @@
     },
     "packages/streamstore": {
       "name": "@zshannon/streamstore",
-      "version": "0.28.0",
+      "version": "0.29.1",
       "dependencies": {
         "@flickfyi/biscuit": "0.0.2",
         "@noble/curves": "2.4.0",

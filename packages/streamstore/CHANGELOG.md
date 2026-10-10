@@ -1,5 +1,11 @@
 # @s2-dev/streamstore
 
+## 0.29.1
+
+### Patch Changes
+
+- Validate the configured GitHub trusted publishers with a workflow publication. No runtime behavior changes.
+
 ## 0.29.0
 
 ### Minor Changes
