@@ -23,12 +23,10 @@ This runs `biome check --write` on staged files. If biome finds issues it cannot
 
 The fork publishes `@zshannon/streamstore`, `@zshannon/streamstore-patterns`
 and `@zshannon/resumable-stream` as public packages. The core PKI entry is
-`@zshannon/streamstore/pki`. Use Bun for repository development; the temporary
-ENG-716 Biscuit link is not an installable npm dependency.
-
-Before the first PKI release, publish the standalone `@flickfyi/biscuit` package
-with the changes from Crayon PR #336, replace the link in the core manifest
-with that exact registry version, and regenerate the Bun and npm lockfiles.
+`@zshannon/streamstore/pki`. Use Bun for repository development; the SDK packages
+remain local workspaces. The core uses the published `@flickfyi/biscuit@0.0.2`
+package, including the schema-6 and verified-signature metadata corrections.
+The Bun and npm lockfiles record its registry dependency and integrity.
 `bun run release:check` and each package's `prepublishOnly` hook reject local
 links and upstream scopes before anything is uploaded.
 

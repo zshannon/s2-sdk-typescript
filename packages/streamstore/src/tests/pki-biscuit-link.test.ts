@@ -3,7 +3,7 @@ import { Biscuit, PublicKey } from "@flickfyi/biscuit";
 import { base64urlnopad } from "@scure/base";
 import { expect, it } from "vitest";
 
-it("links the generic ENG-716 package and identifies the signer of each verified block", () => {
+it("uses published Biscuit and identifies the signer of each verified block", () => {
 	const document = JSON.parse(
 		readFileSync(
 			new URL("./fixtures/pki-v2-rust.json", import.meta.url),

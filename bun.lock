@@ -78,7 +78,7 @@
       "name": "@zshannon/streamstore",
       "version": "0.28.0",
       "dependencies": {
-        "@flickfyi/biscuit": "link:@flickfyi/biscuit",
+        "@flickfyi/biscuit": "0.0.2",
         "@noble/curves": "2.4.0",
         "@noble/hashes": "2.4.0",
         "@protobuf-ts/runtime": "^2.11.1",
@@ -264,7 +264,7 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.11", "", { "os": "win32", "cpu": "x64" }, "sha512-D7Hpz6A2L4hzsRpPaCYkQnGOotdUpDzSGRIv9I+1ITdHROSFUWW95ZPZWQmGka1Fg7W3zFJowyn9WGwMJ0+KPA=="],
 
-    "@flickfyi/biscuit": ["@flickfyi/biscuit@link:@flickfyi/biscuit", {}],
+    "@flickfyi/biscuit": ["@flickfyi/biscuit@0.0.2", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0", "@noble/curves": "2.4.0", "@scure/base": "2.4.0" } }, "sha512-ZHydXYfHiBg4hyaR/kTZOW1ZqgnxKUKDgIX3cvzX/nD+L/NO+z6zJDg5P2YPGDoIm2wCi3QqfRQomIqysoBflA=="],
 
     "@gerrit0/mini-shiki": ["@gerrit0/mini-shiki@3.14.0", "", { "dependencies": { "@shikijs/engine-oniguruma": "^3.14.0", "@shikijs/langs": "^3.14.0", "@shikijs/themes": "^3.14.0", "@shikijs/types": "^3.14.0", "@shikijs/vscode-textmate": "^10.0.2" } }, "sha512-c5X8fwPLOtUS8TVdqhynz9iV0GlOtFUT1ppXYzUUlEXe4kbZ/mvMT8wXoT8kCwUka+zsiloq7sD3pZ3+QVTuNQ=="],
 

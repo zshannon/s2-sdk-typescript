@@ -53,7 +53,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@flickfyi/biscuit": "link:@flickfyi/biscuit",
+    "@flickfyi/biscuit": "0.0.2",
     "@noble/curves": "2.4.0",
     "@noble/hashes": "2.4.0",
     "@protobuf-ts/runtime": "^2.11.1",

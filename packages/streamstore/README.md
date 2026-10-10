@@ -157,27 +157,21 @@ rejecting block-level global trust scopes. SDK admission checks the decoded AST;
 the server additionally applies raw wire/schema and interned-symbol bounds.
 Authorization remains on the server.
 
-### Temporary ENG-716 Biscuit link
+### Published Biscuit dependency
 
-The generic `@flickfyi/biscuit` package is linked from the ENG-716 Crayon workspace
-until its standalone publication. Its root export supplies Biscuit cryptography
-and serialization; S2's profile and HTTP signatures belong to this SDK.
+The generic `@flickfyi/biscuit@0.0.2` package is installed from npm. Its root export
+supplies Biscuit cryptography and serialization; S2's profile and HTTP signatures
+belong to this SDK. The SDK packages remain local workspaces for development.
 
 ```sh
-cd /Volumes/Shockey/Codex/2026-10-09/task/crayon-design/packages/biscuit
-bun link
-pnpm run build
-cd /Users/zcs/Code/zshannon/2026/s2-sdk-typescript
-bun install
+bun install --frozen-lockfile
 ```
 
-The linked package includes two interoperability corrections: verified block
+The published package includes two interoperability corrections: verified block
 signing-algorithm metadata for stable revocation IDs, and schema version 6 for
 authority, attenuation and third-party blocks (including native Reject checks
-and null terms). Once published with these corrections, replace the
-`link:@flickfyi/biscuit` dependency with its published version and regenerate the
-package manager lockfiles before publishing this SDK. The current link uses Bun;
-the upstream npm/Deno lockfiles do not represent these development dependencies.
+and null terms). The Bun and npm lockfiles pin the registry package, so clean CI
+runners and npm consumers do not need a Crayon checkout or a global Bun link.
 
 Run focused regressions against the actual Rust CLI and an isolated in-memory
 Lite server with:
