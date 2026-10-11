@@ -49,3 +49,52 @@ on `main`. Changesets opens a version PR for pending changes, then publishes
 after that version PR merges. Builds, checks and local tests run before the
 publish step. Node 24 supplies npm with OIDC support, so no npm write token is
 stored in GitHub. The initial PKI changeset is included in this branch.
+
+## Weekly upstream checks
+
+`.github/workflows/sync-upstream.yml` checks `s2-streamstore/s2-sdk-typescript:main`
+every Tuesday at 09:00 America/Los_Angeles, matching the S2 fork's weekly check.
+It can also be dispatched manually on `main`. When upstream has new commits,
+the workflow opens one PR directly from upstream main, or reuses the existing
+open PR. It does not reset the fork, merge changes, or publish packages.
+
+Review the PR, including workflow changes. GitHub creates approval-required CI
+runs for PRs opened or updated with `GITHUB_TOKEN`. A maintainer with write access
+must select **Approve workflows to run** in the PR merge box when prompted, then
+wait for all required checks to pass. See
+[GitHub's token event rules](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs).
+Keep the fork's PKI behavior, published Biscuit dependency, `@zshannon`
+package names, and release configuration. Merge upstream PRs with a merge commit
+to preserve ancestry and avoid presenting the same upstream commits again. The
+check uses `GITHUB_TOKEN` with read access to contents and write access to PRs;
+it adds no external token or npm permission.
+
+### Conflicting upstream changes
+
+The automated PR's head is upstream `main`, which fork maintainers cannot edit.
+Resolve conflicts on a new branch in this fork and open a replacement integration
+PR. Use a separate worktree to preserve the main checkout. With `origin` pointing
+to `zshannon/s2-sdk-typescript` and `upstream` to `s2-streamstore/s2-sdk-typescript`,
+choose an unused branch name and worktree path:
+
+```sh
+git fetch origin main
+git fetch upstream main
+git worktree add -b sync/upstream-main ../s2-sdk-upstream origin/main
+cd ../s2-sdk-upstream
+git merge --no-ff upstream/main
+```
+
+Resolve the conflicts while retaining the fork behavior and package names above.
+Stage the resolved files and complete the merge with `git commit`, then push the
+integration branch to the fork:
+
+```sh
+git push -u origin sync/upstream-main
+```
+
+Open a PR from `sync/upstream-main` to this fork's `main` and link it from the
+automated PR. Keep the automated PR open until the integration PR merges, so the
+weekly check reuses the tracking PR. Review and pass required CI on the integration
+PR, merge it with a merge commit, then close the tracking PR. Both histories remain
+ancestors of the result; neither main branch is reset or pushed during preparation.
