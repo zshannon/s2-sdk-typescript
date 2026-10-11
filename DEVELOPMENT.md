@@ -49,3 +49,18 @@ on `main`. Changesets opens a version PR for pending changes, then publishes
 after that version PR merges. Builds, checks and local tests run before the
 publish step. Node 24 supplies npm with OIDC support, so no npm write token is
 stored in GitHub. The initial PKI changeset is included in this branch.
+
+## Weekly upstream checks
+
+`.github/workflows/sync-upstream.yml` checks `s2-streamstore/s2-sdk-typescript:main`
+every Tuesday at 09:00 America/Los_Angeles, matching the S2 fork's weekly check.
+It can also be dispatched manually on `main`. When upstream has new commits,
+the workflow opens one PR directly from upstream main, or reuses the existing
+open PR. It does not reset the fork, merge changes, or publish packages.
+
+Review the PR, resolve conflicts, and ensure required CI runs and passes before
+merging. Keep the fork's PKI behavior, published Biscuit dependency, `@zshannon`
+package names, and release configuration. Merge upstream PRs with a merge commit
+to preserve ancestry and avoid presenting the same upstream commits again. The
+check uses `GITHUB_TOKEN` with read access to contents and write access to PRs;
+it adds no external token or npm permission.
